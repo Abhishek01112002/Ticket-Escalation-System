@@ -4,7 +4,6 @@ import { SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
 import { formatRemaining, getSlaSummary } from '../../domain/sla'
 import { AttentionChip, EscalationDot, StatusBadge } from '../ui/badges'
 import { Avatar } from '../ui/layout'
-import { ChevronRight } from '../ui/icons'
 import { EmptyQueue } from '../ui/feedback'
 
 export function RequestQueue({
@@ -14,120 +13,114 @@ export function RequestQueue({
   requests: Request[]
   onOpen: (id: string) => void
 }) {
-  const open = requests.filter((r) => r.workflowStatus !== 'resolved')
-  const needsAck = requests.filter(
-    (r) => r.workflowStatus === 'awaiting_acknowledgement',
-  )
+  const [filter, setFilter] = useState<'all' | 'needs_ack' | 'escalated' | 'in_progress' | 'resolved'>('all')
+
+  const needsAck = requests.filter((r) => r.workflowStatus === 'awaiting_acknowledgement')
   const escalated = requests.filter((r) => Boolean(r.escalation) && r.workflowStatus !== 'resolved')
   const inProgress = requests.filter((r) => r.workflowStatus === 'in_progress')
   const resolved = requests.filter((r) => r.workflowStatus === 'resolved')
 
-  return (
-    <div className="max-w-[1280px] mx-auto w-full px-5 sm:px-8 py-7">
-      {/* Page header */}
-      <div className="mb-7">
-        <h1
-          className="text-[22px] font-bold tracking-tight mb-1"
-          style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-display)' }}
-        >
-          Request Queue
-        </h1>
-        <p className="text-[13px]" style={{ color: 'var(--color-ink-muted)' }}>
-          {open.length} open · {requests.length} total
-        </p>
-      </div>
+  const filteredRequests = requests.filter((r) => {
+    if (filter === 'needs_ack') return r.workflowStatus === 'awaiting_acknowledgement'
+    if (filter === 'escalated') return Boolean(r.escalation) && r.workflowStatus !== 'resolved'
+    if (filter === 'in_progress') return r.workflowStatus === 'in_progress'
+    if (filter === 'resolved') return r.workflowStatus === 'resolved'
+    return true
+  })
 
-      {/* Attention strip */}
-      {(needsAck.length > 0 || escalated.length > 0) && (
-        <div
-          className="mb-6 flex flex-wrap gap-2"
-          role="region"
-          aria-label="Attention required"
-        >
-          {needsAck.length > 0 && (
-            <AttentionChip
-              count={needsAck.length}
-              label="awaiting acknowledgement"
-              color="amber"
-            />
-          )}
+  return (
+    <div className="max-w-[1400px] w-full mx-auto px-6 sm:px-10 py-8">
+      {/* ── Page Header & Stats ── */}
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-tight text-[#0f172a]">
+            Operations Queue
+          </h1>
+          <p className="text-[13px] text-[#64748b] mt-0.5">
+            {requests.length - resolved.length} active requests requiring oversight · {requests.length} total
+          </p>
+        </div>
+
+        {/* Attention Strip */}
+        <div className="flex items-center gap-2 flex-wrap">
           {escalated.length > 0 && (
-            <AttentionChip
-              count={escalated.length}
-              label="escalated"
-              color="rose"
-            />
+            <AttentionChip count={escalated.length} label="Escalated" color="rose" />
+          )}
+          {needsAck.length > 0 && (
+            <AttentionChip count={needsAck.length} label="Awaiting Ack" color="amber" />
           )}
           {inProgress.length > 0 && (
-            <AttentionChip
-              count={inProgress.length}
-              label="in progress"
-              color="blue"
-            />
+            <AttentionChip count={inProgress.length} label="In Progress" color="blue" />
           )}
         </div>
-      )}
+      </div>
 
-      {/* Request table */}
-      {requests.length === 0 ? (
+      {/* ── Filter Tab Bar ── */}
+      <div className="flex items-center gap-1 border-b border-[#e2e8f0] mb-4">
+        {[
+          { key: 'all', label: 'All Requests', count: requests.length },
+          { key: 'needs_ack', label: 'Awaiting Ack', count: needsAck.length },
+          { key: 'escalated', label: 'Escalated', count: escalated.length },
+          { key: 'in_progress', label: 'In Progress', count: inProgress.length },
+          { key: 'resolved', label: 'Resolved', count: resolved.length },
+        ].map((tab) => {
+          const active = filter === tab.key
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setFilter(tab.key as typeof filter)}
+              className={`px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 ${
+                active
+                  ? 'border-[#0f172a] text-[#0f172a] font-semibold'
+                  : 'border-transparent text-[#64748b] hover:text-[#0f172a]'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded text-[11px] ${
+                  active ? 'bg-[#0f172a] text-white font-bold' : 'bg-[#f1f5f9] text-[#64748b]'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── Requests Table ── */}
+      {filteredRequests.length === 0 ? (
         <EmptyQueue />
       ) : (
-        <div
-          className="bg-white rounded-xl overflow-hidden"
-          style={{
-            border: '1px solid var(--color-border)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          {/* Table header strip */}
-          <div
-            className="px-5 py-3 flex items-center justify-between"
-            style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
-          >
-            <p className="text-[12px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>
-              All requests
-            </p>
-            <div className="flex items-center gap-3 text-[11.5px]" style={{ color: 'var(--color-ink-faint)' }}>
-              <span>{resolved.length} resolved</span>
-            </div>
-          </div>
-
+        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[780px]">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr style={{ background: 'var(--color-surface-2)' }}>
-                  {[
-                    { label: 'Reference & Subject', width: '28%' },
-                    { label: 'Client', width: '16%' },
-                    { label: 'Service', width: '13%' },
-                    { label: 'Owner', width: '15%' },
-                    { label: 'Status', width: '12%' },
-                    { label: 'SLA', width: '12%' },
-                    { label: '', width: '4%' },
-                  ].map((col) => (
-                    <th
-                      key={col.label}
-                      scope="col"
-                      className="px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wider"
-                      style={{
-                        color: 'var(--color-ink-muted)',
-                        borderBottom: '1px solid var(--color-border)',
-                        width: col.width,
-                      }}
-                    >
-                      {col.label || <span className="sr-only">Open</span>}
-                    </th>
-                  ))}
+                <tr className="bg-[#f8fafc] border-b border-[#e2e8f0] text-[11px] font-bold uppercase tracking-wider text-[#64748b]">
+                  <th scope="col" className="px-5 py-3 w-[26%]">
+                    Reference &amp; Subject
+                  </th>
+                  <th scope="col" className="px-4 py-3 w-[16%]">
+                    Client
+                  </th>
+                  <th scope="col" className="px-4 py-3 w-[15%]">
+                    Service Area
+                  </th>
+                  <th scope="col" className="px-4 py-3 w-[16%]">
+                    Assigned Owner
+                  </th>
+                  <th scope="col" className="px-4 py-3 w-[13%]">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 w-[14%]">
+                    SLA Window
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {requests.map((req, idx) => (
-                  <RequestRow
-                    key={req.id}
-                    request={req}
-                    onOpen={onOpen}
-                    isLast={idx === requests.length - 1}
-                  />
+              <tbody className="divide-y divide-[#f1f5f9]">
+                {filteredRequests.map((req) => (
+                  <RequestRow key={req.id} request={req} onOpen={onOpen} />
                 ))}
               </tbody>
             </table>
@@ -138,148 +131,104 @@ export function RequestQueue({
   )
 }
 
-export function RequestRow({
+function RequestRow({
   request,
   onOpen,
-  isLast,
 }: {
   request: Request
   onOpen: (id: string) => void
-  isLast: boolean
 }) {
-  const sla = getSlaSummary(request)
   const [hovered, setHovered] = useState(false)
-
-  const rowStyle = {
-    borderBottom: isLast ? 'none' : '1px solid var(--color-border-subtle)',
-    background: hovered ? 'var(--color-surface-hover)' : 'white',
-    cursor: 'pointer',
-    transition: 'background 120ms ease',
-  }
-
-  const slaDotColor = {
-    on_track: 'var(--color-emerald-dot)',
-    warning: 'var(--color-amber-dot)',
-    breached: 'var(--color-rose-dot)',
-    escalated: 'var(--color-rose-dot)',
-    complete: 'var(--color-emerald-dot)',
-  }[sla.state]
-
-  const slaTextColor = {
-    on_track: 'var(--color-ink)',
-    warning: 'var(--color-amber-text)',
-    breached: 'var(--color-rose-text)',
-    escalated: 'var(--color-rose-text)',
-    complete: 'var(--color-ink-muted)',
-  }[sla.state]
-
-  const slaSummaryText =
-    sla.state === 'complete'
-      ? request.assignment.acknowledgedAt
-        ? 'Acknowledged'
-        : 'Resolved'
-      : sla.state === 'escalated'
-      ? 'Escalated'
-      : formatRemaining(sla.remainingMs)
+  const sla = getSlaSummary(request)
+  const isEscalated = Boolean(request.escalation) && request.workflowStatus !== 'resolved'
+  const isResolved = request.workflowStatus === 'resolved'
 
   return (
     <tr
       role="button"
-      style={rowStyle}
       tabIndex={0}
       onClick={() => onOpen(request.id)}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpen(request.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen(request.id)
+        }
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      aria-label={`Request ${request.id}: ${request.subject}`}
+      className="cursor-pointer transition-colors duration-100 focus-visible:bg-[#f1f5f9] select-none"
+      style={{
+        background: hovered ? '#f8fafc' : isEscalated ? '#fffbfb' : '#ffffff',
+      }}
     >
-      {/* Reference + subject */}
-      <td className="px-4 py-3 align-middle">
+      {/* Reference & Subject */}
+      <td className="px-5 py-3.5">
         <div className="flex items-start gap-2">
-          {request.escalation && request.workflowStatus !== 'resolved' && (
-            <span
-              className="mt-0.5 flex-none"
-              title="Escalated"
-              aria-label="Escalated"
-            >
-              <EscalationDot />
-            </span>
-          )}
+          {isEscalated && <EscalationDot />}
           <div className="min-w-0">
-            <p
-              className="text-[11px] font-semibold mb-0.5 truncate"
-              style={{ color: 'var(--color-ink-muted)', fontFamily: 'var(--font-mono)' }}
-            >
+            <span className="font-mono text-[11.5px] font-semibold text-[#64748b] block mb-0.5">
               {request.id}
-            </p>
-            <p
-              className="text-[13px] font-semibold leading-snug truncate max-w-[280px]"
-              style={{ color: 'var(--color-ink)' }}
-            >
+            </span>
+            <span className="text-[13.5px] font-semibold text-[#0f172a] block truncate leading-snug">
               {request.subject}
-            </p>
+            </span>
           </div>
         </div>
       </td>
 
       {/* Client */}
-      <td className="px-4 py-3 align-middle">
-        <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--color-ink)' }}>
+      <td className="px-4 py-3.5">
+        <span className="text-[13px] font-medium text-[#0f172a] block truncate">
           {request.client.company}
-        </p>
-        <p className="text-[11.5px] truncate" style={{ color: 'var(--color-ink-muted)' }}>
-          {request.client.name}
-        </p>
+        </span>
+        {request.client.name && (
+          <span className="text-[11.5px] text-[#64748b] block truncate">
+            {request.client.name}
+          </span>
+        )}
       </td>
 
-      {/* Service */}
-      <td className="px-4 py-3 align-middle">
-        <span className="text-[12px] font-medium" style={{ color: 'var(--color-ink-secondary)' }}>
+      {/* Service Area */}
+      <td className="px-4 py-3.5">
+        <span className="inline-block px-2 py-0.5 rounded bg-[#f1f5f9] text-[#334155] text-[12px] font-medium border border-[#e2e8f0]">
           {SERVICE_DOMAIN_LABELS[request.serviceDomain]}
         </span>
       </td>
 
       {/* Owner */}
-      <td className="px-4 py-3 align-middle">
+      <td className="px-4 py-3.5">
         {request.assignment?.assignee ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Avatar user={request.assignment.assignee} size="xs" />
-            <span className="text-[12.5px] font-medium truncate" style={{ color: 'var(--color-ink)' }}>
+            <span className="text-[12.5px] font-medium text-[#0f172a] truncate">
               {request.assignment.assignee.name}
             </span>
           </div>
         ) : (
-          <span className="text-[12px] italic" style={{ color: 'var(--color-ink-faint)' }}>
-            Unassigned
-          </span>
+          <span className="text-[12px] text-[#94a3b8] italic">Unassigned</span>
         )}
       </td>
 
       {/* Status */}
-      <td className="px-4 py-3 align-middle">
+      <td className="px-4 py-3.5">
         <StatusBadge status={request.workflowStatus} />
       </td>
 
-      {/* SLA */}
-      <td className="px-4 py-3 align-middle">
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-1.5 h-1.5 rounded-full flex-none"
-            style={{ background: slaDotColor }}
-            aria-hidden="true"
-          />
-          <span className="text-[12px] font-medium" style={{ color: slaTextColor }}>
-            {slaSummaryText}
-          </span>
-        </div>
-      </td>
-
-      {/* Arrow */}
-      <td className="px-4 py-3 align-middle">
-        <ChevronRight
-          className="transition-transform group-hover:translate-x-0.5"
-          style={{ color: hovered ? 'var(--color-ink-muted)' : 'var(--color-ink-subtle)' }}
-        />
+      {/* SLA Window */}
+      <td className="px-4 py-3.5">
+        <span
+          className={`font-mono text-[12px] font-medium ${
+            isResolved
+              ? 'text-[#64748b]'
+              : sla.state === 'breached' || sla.state === 'escalated'
+              ? 'text-[#e11d48] font-bold'
+              : sla.state === 'warning'
+              ? 'text-[#d97706] font-semibold'
+              : 'text-[#0f172a]'
+          }`}
+        >
+          {isResolved ? 'Resolved' : formatRemaining(sla.remainingMs)}
+        </span>
       </td>
     </tr>
   )

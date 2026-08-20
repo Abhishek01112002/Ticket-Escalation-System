@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { Request, User } from '../../domain/ticket'
+import { PrimaryBtn } from '../ui/buttons'
 import { Section } from '../ui/layout'
-import { PrimaryBtn, SecondaryBtn } from '../ui/buttons'
 
 type DetailRequest = Request & { version: number }
 type Member = { id: string; name: string; email: string }
 
 export function ActionPanel({
   request,
-  user: _user,
+  user,
   members,
   busy,
   isPM,
@@ -35,120 +35,124 @@ export function ActionPanel({
   onStartWork: () => void
   onResolve: () => void
 }) {
-  const [assigneeId, setAssigneeId] = useState(members[0]?.id ?? '')
+  const currentAssigneeId = request.assignment?.assignee?.id
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
 
   useEffect(() => {
-    if (!assigneeId && members.length > 0) {
-      setAssigneeId(members[0].id)
+    if (members.length > 0) {
+      const firstAvailable =
+        members.find((m) => m.id !== currentAssigneeId)?.id ?? members[0]?.id
+      setSelectedUserId(firstAvailable ?? '')
     }
-  }, [members, assigneeId])
+  }, [members, currentAssigneeId])
+
+  const targetMemberName = members.find((m) => m.id === selectedUserId)?.name
 
   return (
-    <Section title="Actions" label="Available actions">
-      <div className="flex flex-col gap-3">
-        {/* PM: assign */}
+    <Section title="Next Action" label="Operational actions">
+      <div className="flex flex-col gap-4">
+        {/* PM Action: Assign / Reassign */}
         {isPM && (
-          <div>
-            <p
-              className="text-[12.5px] font-semibold mb-2"
-              style={{ color: 'var(--color-ink-secondary)' }}
-            >
-              Assign team member
-            </p>
-            {members.length > 0 ? (
-              <>
+          <div className="flex flex-col gap-3">
+            <div>
+              <label htmlFor="select-assignee" className="block text-[11.5px] font-semibold text-[#475569] mb-1.5">
+                {request.assignment?.assignee ? 'Reassign specialist' : 'Assign specialist'}
+              </label>
+              {members.length > 0 ? (
                 <select
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full rounded-md px-3 py-2 text-[13px] font-medium mb-2"
-                  style={{
-                    border: '1px solid var(--color-border)',
-                    background: 'white',
-                    color: 'var(--color-ink)',
-                    boxShadow: 'var(--shadow-xs)',
-                  }}
-                  aria-label="Select team member to assign"
+                  id="select-assignee"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  disabled={busy}
+                  className="w-full h-9 px-3 rounded-md border border-[#cbd5e1] bg-white text-[13px] font-medium text-[#0f172a] focus:border-[#0f172a] focus:ring-1 focus:ring-[#0f172a] outline-none transition-colors disabled:opacity-50"
                 >
-                  <option value="" disabled>
-                    Select team member…
-                  </option>
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name}
+                      {m.name} ({m.email})
                     </option>
                   ))}
                 </select>
-                <PrimaryBtn
-                  disabled={busy || !assigneeId}
-                  busy={busy}
-                  onClick={() => assigneeId && onAssign(assigneeId)}
-                >
-                  {request.assignment?.assignee ? 'Reassign' : 'Assign'}
-                </PrimaryBtn>
-              </>
-            ) : (
-              <p className="text-[12.5px] italic" style={{ color: 'var(--color-ink-faint)' }}>
-                Loading team members…
-              </p>
-            )}
-            {/* Divider */}
-            <div
-              className="my-3"
-              style={{ borderTop: '1px solid var(--color-border-subtle)' }}
-            />
-          </div>
-        )}
+              ) : (
+                <p className="text-[12px] text-[#94a3b8]">Loading team members...</p>
+              )}
+            </div>
 
-        {/* Assignee: acknowledge */}
-        {isAssignee && needsAck && (
-          <div>
-            <p
-              className="text-[12px] mb-2"
-              style={{ color: 'var(--color-ink-muted)' }}
+            <PrimaryBtn
+              onClick={() => {
+                if (selectedUserId) onAssign(selectedUserId)
+              }}
+              disabled={busy || !selectedUserId || selectedUserId === currentAssigneeId}
+              busy={busy}
+              className="w-full"
             >
-              Confirm you've received this request and will begin working on it.
-            </p>
-            <PrimaryBtn busy={busy} disabled={busy} onClick={onAcknowledge}>
-              Acknowledge request
+              {request.assignment?.assignee
+                ? `Reassign to ${targetMemberName ?? 'Specialist'}`
+                : `Assign to ${targetMemberName ?? 'Specialist'}`}
             </PrimaryBtn>
+            <p className="text-[11.5px] text-[#64748b] leading-tight">
+              Assignment initiates a fresh 24-hour acknowledgement SLA timer.
+            </p>
           </div>
         )}
 
-        {/* Assignee: start work */}
-        {isAssignee && canStartWork && (
-          <div>
-            <p className="text-[12px] mb-2" style={{ color: 'var(--color-ink-muted)' }}>
-              Acknowledgement recorded. Begin work when ready.
-            </p>
-            <PrimaryBtn busy={busy} disabled={busy} onClick={onStartWork}>
-              Start work
-            </PrimaryBtn>
+        {/* Assignee Action: Acknowledge */}
+        {needsAck && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#f1f5f9]">
+            {isAssignee ? (
+              <PrimaryBtn
+                onClick={onAcknowledge}
+                disabled={busy}
+                busy={busy}
+                className="w-full bg-[#059669] hover:bg-[#047857]"
+              >
+                Acknowledge Request
+              </PrimaryBtn>
+            ) : (
+              <div className="p-3 rounded-md bg-[#fffbeb] border border-[#fef3c7] text-[#92400e] text-[12px]">
+                Awaiting acknowledgement from <strong>{request.assignment?.assignee?.name}</strong>.
+              </div>
+            )}
           </div>
         )}
 
-        {/* Assignee: resolve */}
-        {isAssignee && canResolve && (
-          <div>
-            <p className="text-[12px] mb-2" style={{ color: 'var(--color-ink-muted)' }}>
-              Mark as resolved once the client's request is complete.
-            </p>
-            <PrimaryBtn busy={busy} disabled={busy} onClick={onResolve}>
-              Resolve request
-            </PrimaryBtn>
+        {/* Assignee Action: Start Work */}
+        {canStartWork && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#f1f5f9]">
+            {isAssignee || isPM ? (
+              <PrimaryBtn
+                onClick={onStartWork}
+                disabled={busy}
+                busy={busy}
+                className="w-full"
+              >
+                Start Active Work
+              </PrimaryBtn>
+            ) : (
+              <div className="p-3 rounded-md bg-[#f8fafc] border border-[#e2e8f0] text-[#64748b] text-[12px]">
+                Only the assigned specialist or PM can begin work.
+              </div>
+            )}
           </div>
         )}
 
-        {/* PM: acknowledge as PM */}
-        {isPM && needsAck && (
-          <SecondaryBtn busy={busy} disabled={busy} onClick={onAcknowledge}>
-            Acknowledge as PM
-          </SecondaryBtn>
-        )}
-
-        {!isPM && !isAssignee && (
-          <p className="text-[12.5px] italic" style={{ color: 'var(--color-ink-faint)' }}>
-            You are not the current assignee.
-          </p>
+        {/* Assignee Action: Resolve */}
+        {canResolve && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#f1f5f9]">
+            {isAssignee || isPM ? (
+              <PrimaryBtn
+                onClick={onResolve}
+                disabled={busy}
+                busy={busy}
+                className="w-full bg-[#059669] hover:bg-[#047857]"
+              >
+                Mark as Resolved
+              </PrimaryBtn>
+            ) : (
+              <div className="p-3 rounded-md bg-[#f8fafc] border border-[#e2e8f0] text-[#64748b] text-[12px]">
+                Work in progress by <strong>{request.assignment?.assignee?.name}</strong>.
+              </div>
+            )}
+          </div>
         )}
       </div>
     </Section>

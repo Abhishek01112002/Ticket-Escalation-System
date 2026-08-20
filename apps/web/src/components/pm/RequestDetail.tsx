@@ -3,6 +3,7 @@ import { SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
 import { formatDateTime, getSlaSummary } from '../../domain/sla'
 import { EscalationBadge, StatusBadge, UrgencyBadge } from '../ui/badges'
 import { Avatar, MetaField, Section, WorkflowStepper } from '../ui/layout'
+import { ArrowLeftIcon, CheckIcon } from '../ui/icons'
 import { SlaSection } from './SlaSection'
 import { EscalationSection } from './EscalationSection'
 import { TimelineSection } from './TimelineSection'
@@ -41,148 +42,132 @@ export function RequestDetail({
   const canResolve = request.workflowStatus === 'in_progress'
 
   return (
-    <div className="max-w-[1280px] mx-auto w-full px-5 sm:px-8 py-6 animate-fade-in">
-      {/* Back link */}
+    <div className="max-w-[1400px] w-full mx-auto px-6 sm:px-10 py-7 animate-fade-in">
+      {/* ── Breadcrumb / Back ── */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-[12.5px] font-semibold mb-5 transition-colors"
-        style={{ color: 'var(--color-ink-muted)' }}
-        onMouseOver={(e) => (e.currentTarget.style.color = 'var(--color-ink)')}
-        onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-ink-muted)')}
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#64748b] hover:text-[#0f172a] mb-5 transition-colors"
       >
-        <span aria-hidden="true">←</span> Back to queue
+        <ArrowLeftIcon size={13} />
+        <span>Back to Operations Queue</span>
       </button>
 
-      {/* Page header */}
-      <div
-        className="pb-5 mb-5"
-        style={{ borderBottom: '1px solid var(--color-border)' }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      {/* ── Header Canvas ── */}
+      <div className="bg-white rounded-lg border border-[#e2e8f0] p-6 mb-6 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 pb-5 border-b border-[#f1f5f9]">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span
-                className="text-[11.5px] font-semibold"
-                style={{ color: 'var(--color-ink-muted)', fontFamily: 'var(--font-mono)' }}
-              >
+            <div className="flex flex-wrap items-center gap-2 mb-2.5">
+              <span className="font-mono text-[12px] font-bold text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded border border-[#e2e8f0]">
                 {request.id}
               </span>
               <UrgencyBadge urgency={request.clientUrgency} />
               {request.escalation && <EscalationBadge />}
             </div>
-            <h1
-              className="text-[20px] sm:text-[22px] font-bold tracking-tight leading-snug mb-1.5"
-              style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-display)' }}
-            >
+
+            <h1 className="text-[22px] sm:text-[24px] font-bold tracking-tight text-[#0f172a] leading-snug mb-2">
               {request.subject}
             </h1>
-            <p className="text-[13px]" style={{ color: 'var(--color-ink-muted)' }}>
-              {request.client.company}
-              {request.client.name && ` · ${request.client.name}`}
-              {request.createdAt && ` · ${formatDateTime(request.createdAt)}`}
+
+            <p className="text-[13px] text-[#64748b] flex flex-wrap items-center gap-x-2 gap-y-1">
+              <strong className="text-[#0f172a]">{request.client.company}</strong>
+              {request.client.name && <span>· {request.client.name}</span>}
+              {request.createdAt && <span>· Received {formatDateTime(request.createdAt)}</span>}
             </p>
           </div>
+
           <div className="flex items-center gap-2 flex-shrink-0">
             <StatusBadge status={request.workflowStatus} size="md" />
           </div>
         </div>
 
-        {/* Workflow stepper */}
-        <div className="mt-4">
+        {/* Workflow Progress Bar */}
+        <div className="pt-4">
           <WorkflowStepper status={request.workflowStatus} />
         </div>
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-        {/* Left: primary content */}
-        <div className="flex flex-col gap-4">
-          {/* Request details */}
-          <Section title="Request" label="Client request details">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
-              <MetaField label="Service">{SERVICE_DOMAIN_LABELS[request.serviceDomain]}</MetaField>
-              <MetaField label="Urgency">
+      {/* ── Two-Column Layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        {/* Left Column: Core Domain & Workflow Details */}
+        <div className="flex flex-col gap-6">
+          {/* Request Requirements */}
+          <Section title="Requirement Scope &amp; Context" label="Client requirement details">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-5 pb-4 border-b border-[#f1f5f9]">
+              <MetaField label="Service Area">
+                {SERVICE_DOMAIN_LABELS[request.serviceDomain]}
+              </MetaField>
+              <MetaField label="Client Urgency">
                 <span className="capitalize">{request.clientUrgency.replace('_', ' ')}</span>
               </MetaField>
-              {request.client.email && (
-                <MetaField label="Email">
-                  <a
-                    href={`mailto:${request.client.email}`}
-                    className="hover:underline"
-                    style={{ color: 'var(--color-ink-secondary)' }}
-                  >
-                    {request.client.email}
-                  </a>
-                </MetaField>
-              )}
-              {request.client.phone && (
-                <MetaField label="Phone">{request.client.phone}</MetaField>
-              )}
+              <MetaField label="Client Email">
+                <a
+                  href={`mailto:${request.client.email}`}
+                  className="hover:underline text-[#0f172a]"
+                >
+                  {request.client.email}
+                </a>
+              </MetaField>
+              <MetaField label="Contact Phone">
+                {request.client.phone || '—'}
+              </MetaField>
             </div>
+
             {request.subject && (
               <div>
-                <p
-                  className="text-[10.5px] font-bold uppercase tracking-wider mb-2"
-                  style={{ color: 'var(--color-ink-muted)' }}
-                >
-                  Requirement
-                </p>
-                <p
-                  className="text-[13.5px] leading-relaxed whitespace-pre-wrap"
-                  style={{ color: 'var(--color-ink-secondary)' }}
-                >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8] block mb-2">
+                  Full Requirement Description
+                </span>
+                <p className="text-[13.5px] text-[#334155] leading-relaxed whitespace-pre-wrap">
                   {request.subject}
                 </p>
               </div>
             )}
           </Section>
 
-          {/* SLA */}
+          {/* SLA Tracking */}
           <SlaSection request={request} sla={sla} />
 
-          {/* Escalation */}
+          {/* Escalation Event (if triggered) */}
           {request.escalation && (
             <EscalationSection escalation={request.escalation} />
           )}
 
-          {/* Timeline */}
+          {/* Chronological Audit Timeline */}
           <TimelineSection timeline={request.timeline} />
         </div>
 
-        {/* Right: operational sidebar */}
-        <div className="flex flex-col gap-4">
-          {/* Current owner */}
-          <Section title="Current Owner" label="Assignment status">
+        {/* Right Column: Ownership & Operations Sidebar */}
+        <div className="flex flex-col gap-6">
+          {/* Current Assignee Card */}
+          <Section title="Assigned Specialist" label="Ownership status">
             {request.assignment?.assignee ? (
-              <>
-                <div className="flex items-center gap-3 mb-3">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
                   <Avatar user={request.assignment.assignee} size="md" />
-                  <div>
-                    <p
-                      className="text-[14px] font-bold leading-tight"
-                      style={{ color: 'var(--color-ink)' }}
-                    >
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold text-[#0f172a] truncate">
                       {request.assignment.assignee.name}
                     </p>
-                    <p className="text-[12px]" style={{ color: 'var(--color-ink-muted)' }}>
-                      {request.assignment.assignee.team}
+                    <p className="text-[12px] text-[#64748b]">
+                      {request.assignment.assignee.team || 'Specialist Team'}
                     </p>
                   </div>
                 </div>
+
                 {request.assignment.assignedAt && (
-                  <p className="text-[11.5px]" style={{ color: 'var(--color-ink-faint)' }}>
+                  <p className="text-[11.5px] text-[#94a3b8] border-t border-[#f1f5f9] pt-2">
                     Assigned {formatDateTime(request.assignment.assignedAt)}
                   </p>
                 )}
-              </>
+              </div>
             ) : (
-              <p className="text-[13px] italic" style={{ color: 'var(--color-ink-faint)' }}>
-                Not yet assigned
+              <p className="text-[13px] text-[#94a3b8] italic">
+                No specialist assigned yet.
               </p>
             )}
           </Section>
 
-          {/* Actions */}
+          {/* Next Action Controls */}
           {!isResolved && (
             <ActionPanel
               request={request}
@@ -201,24 +186,48 @@ export function RequestDetail({
             />
           )}
 
+          {/* Resolved State Confirmation */}
           {isResolved && (
-            <Section title="Status" label="Resolution status">
-              <div className="flex items-center gap-2 mb-2">
-                <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-none"
-                  style={{ background: 'var(--color-emerald-dot)' }}
-                >
-                  ✓
+            <Section title="Resolution Status" label="Completed request">
+              <div className="flex items-center gap-2 mb-2 text-[#059669]">
+                <span className="w-5 h-5 rounded-full bg-[#ecfdf5] border border-[#d1fae5] flex items-center justify-center text-[11px] font-bold">
+                  <CheckIcon size={12} />
                 </span>
-                <p className="text-[13.5px] font-semibold" style={{ color: 'var(--color-ink)' }}>
-                  Request resolved
-                </p>
+                <span className="text-[13.5px] font-bold text-[#0f172a]">
+                  Request Completed
+                </span>
               </div>
-              <p className="text-[12.5px]" style={{ color: 'var(--color-ink-muted)' }}>
-                The full audit trail is preserved in the timeline.
+              <p className="text-[12.5px] text-[#64748b] leading-relaxed">
+                All lifecycle steps have been successfully closed and recorded in the audit trail.
               </p>
             </Section>
           )}
+
+          {/* Client Details Quick Reference */}
+          <Section title="Client Organization" label="Client information">
+            <div className="flex flex-col gap-2 text-[13px]">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8] block">
+                  Company
+                </span>
+                <span className="font-semibold text-[#0f172a]">{request.client.company}</span>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8] block">
+                  Primary Contact
+                </span>
+                <span className="text-[#334155]">{request.client.name}</span>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8] block">
+                  Email
+                </span>
+                <a href={`mailto:${request.client.email}`} className="text-[#0f172a] hover:underline font-mono text-[12px]">
+                  {request.client.email}
+                </a>
+              </div>
+            </div>
+          </Section>
         </div>
       </div>
     </div>
