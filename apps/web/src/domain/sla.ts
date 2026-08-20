@@ -56,3 +56,19 @@ export function formatDateTime(value: string | Date): string {
     hour12: true,
   }).format(new Date(value))
 }
+
+export function formatHumanDateTime(value: string | Date): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return '—'
+  const dayMonth = new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+  }).format(date)
+  const time = new Intl.DateTimeFormat('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date)
+  return `${dayMonth} · ${time}`
+}

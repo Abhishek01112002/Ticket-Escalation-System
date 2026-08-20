@@ -1,10 +1,20 @@
-import { loadConfig } from '@nvara/config';
-import { createDbPool } from './index.js';
-const pool = createDbPool(loadConfig().DATABASE_URL);
-const client = await pool.connect();
+import { loadConfig } from '@nvara/config'
+import { createDbPool } from './index.js'
+
+const pool = createDbPool(loadConfig().DATABASE_URL)
+const client = await pool.connect()
+
 try {
-  await client.query('BEGIN');
-  const org = (await client.query("INSERT INTO organizations(name) VALUES ('Nvara Media') ON CONFLICT (name) DO UPDATE SET updated_at = organizations.updated_at RETURNING id")).rows[0];
+  await client.query('BEGIN')
+
+  // 1. Organization
+  const org = (
+    await client.query(
+      "INSERT INTO organizations(name) VALUES ('Nvara Media') ON CONFLICT (name) DO UPDATE SET updated_at = organizations.updated_at RETURNING id"
+    )
+  ).rows[0]
+
+  // 2. Service Domains
   const domains: Array<[string, string]> = [
     ['Digital Marketing', 'digital_marketing'],
     ['Social Media Marketing', 'social_media_marketing'],
@@ -14,22 +24,258 @@ try {
     ['Branding & Graphic Design', 'branding_graphic_design'],
     ['Video Production', 'video_production'],
     ['Immersive Media', 'immersive_media'],
-  ];
-  for (const [name, slug] of domains) await client.query('INSERT INTO service_domains(organization_id,name,slug) VALUES ($1,$2,$3) ON CONFLICT (organization_id,slug) DO UPDATE SET name = EXCLUDED.name, is_active = true', [org.id, name, slug]);
-  const roles = ['client','project_manager','internal_team_member'];
-  for (const code of roles) await client.query('INSERT INTO roles(code) VALUES ($1) ON CONFLICT (code) DO NOTHING', [code]);
-  const users = [['Demo Project Manager','pm.demo@invalid.test','project_manager','dev-pm-subject-001'],['Demo Internal Team Member','internal.demo@invalid.test','internal_team_member','dev-internal-subject-001'],['Demo Client','client.demo@invalid.test','client','dev-client-subject-001']];
-  for (const [displayName,email,role,authSubject] of users) { const user = (await client.query('INSERT INTO users(organization_id,display_name,email,auth_subject,is_active,is_demo) VALUES ($1,$2,$3,$4,true,true) ON CONFLICT (organization_id,email) DO UPDATE SET display_name = EXCLUDED.display_name, auth_subject = EXCLUDED.auth_subject, is_active = true RETURNING id', [org.id,displayName,email,authSubject])).rows[0]; const roleRow = (await client.query('SELECT id FROM roles WHERE code=$1',[role])).rows[0]; await client.query('INSERT INTO user_roles(user_id,role_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',[user.id,roleRow.id]); }
-  const pm = (await client.query("SELECT id FROM users WHERE email='pm.demo@invalid.test' AND organization_id=$1", [org.id])).rows[0].id;
-  const internal = (await client.query("SELECT id FROM users WHERE email='internal.demo@invalid.test' AND organization_id=$1", [org.id])).rows[0].id;
-  const domain = (await client.query("SELECT id FROM service_domains WHERE organization_id=$1 AND slug='web_app_development'", [org.id])).rows[0].id;
-  for (const scenario of [['Fresh PM request','fresh.pm@invalid.test','awaiting_acknowledgement',pm],['Internal assigned request','assigned.internal@invalid.test','awaiting_acknowledgement',internal],['In progress request','progress.internal@invalid.test','in_progress',internal],['Resolved request','resolved.internal@invalid.test','resolved',internal]] as const) {
-    const existingClient=await client.query('SELECT id FROM clients WHERE organization_id=$1 AND email=$2',[org.id,scenario[1]]);
-    const clientRow=existingClient.rowCount ? existingClient.rows[0] : (await client.query('INSERT INTO clients(organization_id,name,company,email,phone_whatsapp) VALUES($1,$2,$3,$4,$5) RETURNING id',[org.id,scenario[0],scenario[0]+' Co',scenario[1],'+910000000000'])).rows[0];
-    const request=(await client.query("INSERT INTO requests(organization_id,public_reference,client_id,service_domain_id,requirement,urgency,status) VALUES($1,$2,$3,$4,$5,'flexible',$6) ON CONFLICT (public_reference) DO UPDATE SET status=EXCLUDED.status RETURNING id",[org.id,'SEED-'+scenario[1].split('.')[0].toUpperCase(),clientRow.id,domain,scenario[0]+' requirement',scenario[2]])).rows[0];
-    const assignment=(await client.query('INSERT INTO assignments(request_id,assignee_user_id,assigned_by_user_id) SELECT $1,$2,$3 WHERE NOT EXISTS(SELECT 1 FROM assignments WHERE request_id=$1 AND ended_at IS NULL) RETURNING id',[request.id,scenario[3],pm])).rows[0];
-    if(assignment){await client.query("INSERT INTO sla_records(assignment_id,policy_code,duration_seconds,started_at,deadline_at,acknowledged_at,status) VALUES($1,'acknowledgement',86400,now(),now()+interval '24 hours',CASE WHEN $2 IN ('in_progress','resolved') THEN now() ELSE NULL END,CASE WHEN $2='resolved' THEN 'closed' WHEN $2='in_progress' THEN 'acknowledged' ELSE 'active' END)",[assignment.id,scenario[2]]);await client.query("INSERT INTO audit_events(organization_id,request_id,assignment_id,actor_user_id,actor_type,event_type,new_state) VALUES($1,$2,$3,$4,'system','request_created',$5) ON CONFLICT DO NOTHING",[org.id,request.id,assignment.id,pm,scenario[2]])}
+  ]
+
+  for (const [name, slug] of domains) {
+    await client.query(
+      'INSERT INTO service_domains(organization_id, name, slug) VALUES ($1, $2, $3) ON CONFLICT (organization_id, slug) DO UPDATE SET name = EXCLUDED.name, is_active = true',
+      [org.id, name, slug]
+    )
   }
-  await client.query('COMMIT');
-  console.log('Development seed complete');
-} catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); await pool.end(); }
+
+  // 3. Roles
+  for (const code of ['client', 'project_manager', 'internal_team_member']) {
+    await client.query('INSERT INTO roles(code) VALUES ($1) ON CONFLICT (code) DO NOTHING', [code])
+  }
+
+  // 4. Users (Clean professional names)
+  const users = [
+    ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001'],
+    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-rohan-subject-001'],
+    ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001'],
+  ]
+
+  for (const [displayName, email, role, authSubject] of users) {
+    const user = (
+      await client.query(
+        'INSERT INTO users(organization_id, display_name, email, auth_subject, is_active, is_demo) VALUES ($1, $2, $3, $4, true, false) ON CONFLICT (organization_id, email) DO UPDATE SET display_name = EXCLUDED.display_name, auth_subject = EXCLUDED.auth_subject, is_active = true RETURNING id',
+        [org.id, displayName, email, authSubject]
+      )
+    ).rows[0]
+    const roleRow = (await client.query('SELECT id FROM roles WHERE code=$1', [role])).rows[0]
+    await client.query('INSERT INTO user_roles(user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [user.id, roleRow.id])
+  }
+
+  const pmUser = (await client.query("SELECT id FROM users WHERE email='pm@nvaramedia.com' AND organization_id=$1", [org.id])).rows[0]
+  const rohanUser = (await client.query("SELECT id FROM users WHERE email='rohan.mehta@nvaramedia.com' AND organization_id=$1", [org.id])).rows[0]
+  const priyaUser = (await client.query("SELECT id FROM users WHERE email='priya.sharma@nvaramedia.com' AND organization_id=$1", [org.id])).rows[0]
+
+  // 5. Clean previous requests to ensure exactly 10 clean records
+  await client.query('DELETE FROM escalation_events WHERE request_id IN (SELECT id FROM requests WHERE organization_id=$1)', [org.id])
+  await client.query('DELETE FROM audit_events WHERE organization_id=$1', [org.id])
+  await client.query('DELETE FROM sla_records WHERE assignment_id IN (SELECT a.id FROM assignments a JOIN requests r ON r.id=a.request_id WHERE r.organization_id=$1)', [org.id])
+  await client.query('DELETE FROM assignments WHERE request_id IN (SELECT id FROM requests WHERE organization_id=$1)', [org.id])
+  await client.query('DELETE FROM requests WHERE organization_id=$1', [org.id])
+
+  // 6. Exactly 10 realistic client request scenarios
+  const seedRequests = [
+    {
+      ref: 'NVARA-2026-AURA101',
+      clientName: 'Sarah Jenkins',
+      company: 'Aura Cosmetics',
+      email: 'sarah@auracosmetics.com',
+      phone: '+91 98201 11223',
+      domain: 'social_media_marketing',
+      urgency: 'time_sensitive',
+      status: 'awaiting_acknowledgement',
+      subject: 'Paid Social Performance Campaign for Q4 Holiday Launch',
+      assignee: rohanUser.id,
+      slaStatus: 'active',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-NEXA102',
+      clientName: 'Vikram Malhotra',
+      company: 'Nexa Fintech',
+      email: 'vikram@nexafintech.io',
+      phone: '+91 98334 44556',
+      domain: 'web_app_development',
+      urgency: 'soon',
+      status: 'awaiting_acknowledgement',
+      subject: 'Mobile Banking Experience Redesign & Component Architecture',
+      assignee: priyaUser.id,
+      slaStatus: 'active',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-ZEN103',
+      clientName: 'Elena Rostova',
+      company: 'Zen Dynamics',
+      email: 'elena@zendynamics.com',
+      phone: '+91 98450 77889',
+      domain: 'seo',
+      urgency: 'flexible',
+      status: 'in_progress',
+      subject: 'Global Technical SEO Audit, Core Web Vitals & Content Restructure',
+      assignee: rohanUser.id,
+      slaStatus: 'acknowledged',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-HORIZ104',
+      clientName: 'Marcus Vance',
+      company: 'Horizon Media',
+      email: 'marcus@horizonmedia.com',
+      phone: '+91 98110 33445',
+      domain: 'branding_graphic_design',
+      urgency: 'soon',
+      status: 'acknowledged',
+      subject: 'Comprehensive Brand Identity, Design Tokens & Marketing Collateral',
+      assignee: priyaUser.id,
+      slaStatus: 'acknowledged',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-PEAK105',
+      clientName: 'David K.',
+      company: 'Peak Logistics',
+      email: 'david@peaklogistics.com',
+      phone: '+91 98661 22334',
+      domain: 'web_app_development',
+      urgency: 'time_sensitive',
+      status: 'in_progress',
+      subject: 'Realtime Fleet Telemetry Dashboard & Dispatch Portal',
+      assignee: priyaUser.id,
+      slaStatus: 'acknowledged',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-SOLIS106',
+      clientName: 'Amara Chen',
+      company: 'Solis Energy',
+      email: 'amara@solisenergy.com',
+      phone: '+91 98772 55667',
+      domain: 'video_production',
+      urgency: 'flexible',
+      status: 'resolved',
+      subject: 'Commercial Video Production & 3D Rendered Product Showcase',
+      assignee: rohanUser.id,
+      slaStatus: 'closed',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-VERTEX107',
+      clientName: 'Dr. Neil Patel',
+      company: 'Vertex Health',
+      email: 'neil@vertexhealth.org',
+      phone: '+91 98883 99001',
+      domain: 'web_app_development',
+      urgency: 'soon',
+      status: 'resolved',
+      subject: 'HIPAA Compliant Patient Telehealth & Booking Application',
+      assignee: priyaUser.id,
+      slaStatus: 'closed',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-URBAN108',
+      clientName: 'Maya Kapoor',
+      company: 'Urban Nest Living',
+      email: 'maya@urbannest.com',
+      phone: '+91 98994 11228',
+      domain: 'influencer_marketing',
+      urgency: 'flexible',
+      status: 'awaiting_acknowledgement',
+      subject: 'Creator Collaboration Program & UGC Campaign for Autumn Collection',
+      assignee: null,
+      slaStatus: 'active',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-QNTM109',
+      clientName: 'Arjun Das',
+      company: 'Quantum AI Systems',
+      email: 'arjun@quantumai.dev',
+      phone: '+91 98005 33449',
+      domain: 'immersive_media',
+      urgency: 'soon',
+      status: 'resolved',
+      subject: 'Interactive WebGL 3D Data Visualizer for Cloud Compute Nodes',
+      assignee: rohanUser.id,
+      slaStatus: 'closed',
+      escalated: false,
+    },
+    {
+      ref: 'NVARA-2026-STEL110',
+      clientName: 'Rachel Green',
+      company: 'Stellar Labs',
+      email: 'rachel@stellarlabs.com',
+      phone: '+91 98116 77880',
+      domain: 'digital_marketing',
+      urgency: 'time_sensitive',
+      status: 'awaiting_acknowledgement',
+      subject: 'Omnichannel B2B Growth Strategy & Inbound Funnel Optimization',
+      assignee: rohanUser.id,
+      slaStatus: 'breached',
+      escalated: true,
+    },
+  ]
+
+  for (const s of seedRequests) {
+    // Client
+    const clientRes = await client.query(
+      'INSERT INTO clients(organization_id, name, company, email, phone_whatsapp) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [org.id, s.clientName, s.company, s.email, s.phone]
+    )
+    const clientId = clientRes.rows[0].id
+
+    // Service domain
+    const domainRow = (await client.query('SELECT id FROM service_domains WHERE organization_id=$1 AND slug=$2', [org.id, s.domain])).rows[0]
+
+    // Request
+    const reqRes = await client.query(
+      'INSERT INTO requests(organization_id, public_reference, client_id, service_domain_id, requirement, urgency, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [org.id, s.ref, clientId, domainRow.id, s.subject, s.urgency, s.status]
+    )
+    const reqId = reqRes.rows[0].id
+
+    // Initial audit event
+    await client.query(
+      "INSERT INTO audit_events(organization_id, request_id, actor_type, event_type, new_state) VALUES ($1, $2, 'client', 'request_created', 'awaiting_acknowledgement')",
+      [org.id, reqId]
+    )
+
+    // Assignment & SLA if assigned
+    if (s.assignee) {
+      const assignRes = await client.query(
+        'INSERT INTO assignments(request_id, assignee_user_id, assigned_by_user_id) VALUES ($1, $2, $3) RETURNING id',
+        [reqId, s.assignee, pmUser.id]
+      )
+      const assignId = assignRes.rows[0].id
+
+      await client.query(
+        "INSERT INTO audit_events(organization_id, request_id, assignment_id, actor_user_id, actor_type, event_type, new_state) VALUES ($1, $2, $3, $4, 'human', 'assigned', $5)",
+        [org.id, reqId, assignId, pmUser.id, s.status]
+      )
+
+      // SLA Record
+      const deadline = s.slaStatus === 'breached' ? "now() - interval '2 hours'" : "now() + interval '20 hours'"
+      const ackAt = s.status === 'in_progress' || s.status === 'resolved' || s.status === 'acknowledged' ? 'now()' : 'NULL'
+
+      await client.query(
+        `INSERT INTO sla_records(assignment_id, policy_code, duration_seconds, started_at, deadline_at, acknowledged_at, status) VALUES ($1, 'acknowledgement', 86400, now() - interval '4 hours', ${deadline}, ${ackAt}, $2)`,
+        [assignId, s.slaStatus]
+      )
+
+      if (s.escalated) {
+        await client.query(
+          "INSERT INTO escalation_events(organization_id, request_id, assignment_id, responsible_user_id, reason) VALUES ($1, $2, $3, $4, 'Acknowledgement SLA breach (24-hour window expired)')",
+          [org.id, reqId, assignId, s.assignee]
+        )
+        await client.query(
+          "INSERT INTO audit_events(organization_id, request_id, assignment_id, actor_type, event_type, new_state) VALUES ($1, $2, $3, 'system', 'escalation_triggered', 'awaiting_acknowledgement')",
+          [org.id, reqId, assignId]
+        )
+      }
+    }
+  }
+
+  await client.query('COMMIT')
+  console.log('Clean 10-item production seed completed successfully.')
+} catch (error) {
+  await client.query('ROLLBACK')
+  throw error
+} finally {
+  client.release()
+  await pool.end()
+}

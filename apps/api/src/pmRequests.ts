@@ -64,4 +64,39 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
     if (!result.rowCount) return reply.code(404).send({ error: { code: 'REQUEST_NOT_FOUND', message: 'Request not found.' } })
     return { events: result.rows.map(row => ({ type: row.event_type, at: row.occurred_at, actor: row.display_name ?? (row.actor_type === 'system' ? 'System' : 'Client'), title: row.event_type.replaceAll('_', ' '), detail: row.new_state ? `${row.previous_state ?? 'new'} → ${row.new_state}` : 'Request activity recorded.' })) }
   })
+
+  app.delete('/v1/pm/requests/:id', async (request, reply) => {
+    const user = await authenticatePm(request, pool, config)
+    if (user.role !== 'project_manager') {
+      return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Only Project Managers can delete requests.' } })
+    }
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      const targetReq = await client.query(
+        'SELECT id, status FROM requests WHERE organization_id=$1 AND public_reference=$2 FOR UPDATE',
+        [user.organizationId, reference(request)]
+      )
+      if (!targetReq.rowCount) {
+        await client.query('ROLLBACK')
+        return reply.code(404).send({ error: { code: 'REQUEST_NOT_FOUND', message: 'Request not found.' } })
+      }
+      const reqId = targetReq.rows[0].id
+      await client.query('DELETE FROM escalation_events WHERE request_id=$1', [reqId])
+      await client.query('DELETE FROM audit_events WHERE request_id=$1', [reqId])
+      const assignmentIds = (await client.query('SELECT id FROM assignments WHERE request_id=$1', [reqId])).rows.map(r => r.id)
+      if (assignmentIds.length > 0) {
+        await client.query('DELETE FROM sla_records WHERE assignment_id = ANY($1)', [assignmentIds])
+        await client.query('DELETE FROM assignments WHERE request_id=$1', [reqId])
+      }
+      await client.query('DELETE FROM requests WHERE id=$1', [reqId])
+      await client.query('COMMIT')
+      return { success: true, deletedReference: reference(request) }
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  })
 }

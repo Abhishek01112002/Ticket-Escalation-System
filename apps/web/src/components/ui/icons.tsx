@@ -103,6 +103,21 @@ export function ChevronRight({ className, style }: { className?: string; style?:
   )
 }
 
+export function ChevronLeft({ className, size = 14 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 14 14"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M9 3L5 7l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function Spinner({ size = 16 }: { size?: number }) {
   return (
     <svg

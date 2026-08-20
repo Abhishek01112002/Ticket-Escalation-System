@@ -21,15 +21,24 @@ export function ConfirmationScreen({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-[#0f172a]">
+    <div className="min-h-screen flex flex-col bg-[#f4f6f5] text-[#0b131b]">
       {/* ── Topbar ── */}
-      <header className="h-14 border-b border-[#e2e8f0] bg-white px-6 sm:px-10 flex items-center sticky top-0 z-10">
+      <header className="h-14 border-b border-[#e2e8e5] bg-white px-6 sm:px-10 flex items-center justify-between sticky top-0 z-10 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-[#0f172a] text-white flex items-center justify-center font-bold text-xs">
+          <div className="w-7 h-7 rounded bg-[#0b131b] text-white flex items-center justify-center font-bold text-xs">
             N
           </div>
-          <span className="font-bold text-[14px] tracking-tight">Nvara Media</span>
+          <span className="font-bold text-[14px] tracking-tight text-[#0b131b]">Nvara Media</span>
+          <span className="text-[12px] font-medium text-[#64748b] hidden sm:inline-block">/ Request Confirmation</span>
         </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-[13px] font-medium text-[#64748b] hover:text-[#0f172a] px-2.5 py-1 rounded border border-[#e2e8f0] hover:bg-[#f8fafc] transition-colors cursor-pointer"
+        >
+          <span>←</span>
+          <span>Portal Home</span>
+        </button>
       </header>
 
       {/* ── Confirmation Main ── */}

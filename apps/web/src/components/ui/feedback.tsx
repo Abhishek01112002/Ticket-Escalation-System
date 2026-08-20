@@ -1,4 +1,4 @@
-import { CheckIcon, Spinner } from './icons'
+import { Spinner } from './icons'
 
 export function LoadingState({ label }: { label: string }) {
   return (

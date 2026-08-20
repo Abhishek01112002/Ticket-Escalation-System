@@ -1,5 +1,5 @@
 import React from 'react'
-import type { User, WorkflowStatus } from '../../domain/ticket'
+import type { WorkflowStatus } from '../../domain/ticket'
 import { CheckIcon } from './icons'
 
 export function Section({
@@ -14,18 +14,14 @@ export function Section({
   action?: React.ReactNode
 }) {
   return (
-    <section
-      aria-label={label}
-      className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden"
-      style={{ boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)' }}
-    >
-      <div className="px-5 py-3.5 border-b border-[#f1f5f9] flex items-center justify-between bg-[#ffffff]">
-        <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#64748b]">
+    <section aria-label={label} className="pb-6 mb-6 border-b border-[#e2e8f0] last:border-b-0 last:pb-0 last:mb-0">
+      <div className="flex items-center justify-between mb-3.5">
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#64748b]">
           {title}
         </h2>
         {action}
       </div>
-      <div className="p-5">{children}</div>
+      <div>{children}</div>
     </section>
   )
 }
@@ -59,6 +55,7 @@ export function Avatar({
   const initials =
     user.initials ||
     user.name
+      .replace(/^Demo\s+/i, '')
       .split(' ')
       .map((n) => n[0])
       .join('')
@@ -88,7 +85,7 @@ export function Avatar({
 }
 
 const STEPS: { key: WorkflowStatus; label: string }[] = [
-  { key: 'awaiting_acknowledgement', label: '1. Awaiting Ack' },
+  { key: 'awaiting_acknowledgement', label: '1. Pending' },
   { key: 'acknowledged', label: '2. Acknowledged' },
   { key: 'in_progress', label: '3. In Progress' },
   { key: 'resolved', label: '4. Resolved' },
@@ -98,8 +95,8 @@ export function WorkflowStepper({ status }: { status: WorkflowStatus }) {
   const currentIdx = STEPS.findIndex((s) => s.key === status)
 
   return (
-    <nav aria-label="Workflow progress" className="w-full py-1">
-      <ol className="flex items-center gap-2">
+    <nav aria-label="Workflow progress" className="w-full">
+      <ol className="flex items-center gap-3">
         {STEPS.map((step, idx) => {
           const isDone = idx < currentIdx
           const isCurrent = idx === currentIdx

@@ -1,36 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* ── Sidebar (Deep Slate Architecture) ── */
-  --color-sidebar:          #0b131b;
-  --color-sidebar-hover:    #131f2b;
-  --color-sidebar-active:   #192837;
-  --color-sidebar-border:   #18232e;
-  --color-sidebar-ring:     #233444;
+  /* ── Nvara Deep Brand Surfaces ── */
+  --color-sidebar:          #080e14;
+  --color-sidebar-hover:    #101c28;
+  --color-sidebar-active:   #152332;
+  --color-sidebar-border:   #18293a;
+  --color-sidebar-ring:     #233a50;
 
-  /* ── Brand Accent (Refined Emerald & Lime Wash) ── */
-  --color-accent:           #10b981;
-  --color-accent-hover:     #059669;
+  /* ── Nvara Signature Emerald & Green Palette ── */
+  --color-accent:           #059669;
+  --color-accent-hover:     #047857;
   --color-accent-dark:      #064e3b;
   --color-accent-border:    #059669;
-  --color-accent-muted:     rgba(16, 185, 129, 0.08);
+  --color-accent-glow:      #10b981;
+  --color-accent-muted:     rgba(5, 150, 105, 0.08);
 
-  /* ── Crisp Enterprise Slate Palette ── */
-  --color-ink:              #0f172a;
-  --color-ink-secondary:    #334155;
-  --color-ink-muted:        #64748b;
-  --color-ink-faint:        #94a3b8;
-  --color-ink-subtle:       #cbd5e1;
+  /* ── Nvara Deep Charcoal & Slate Ink ── */
+  --color-ink:              #0b131b;
+  --color-ink-secondary:    #2c3e50;
+  --color-ink-muted:        #5a6e7f;
+  --color-ink-faint:        #8da0b0;
+  --color-ink-subtle:       #cbd6dc;
 
-  /* ── Clean White & Slate Surfaces ── */
+  /* ── Nvara Warm Studio Neutral Surfaces ── */
   --color-surface:          #ffffff;
-  --color-surface-2:        #f8fafc;
-  --color-surface-3:        #f1f5f9;
-  --color-surface-hover:    #f8fafc;
-  --color-border:           #e2e8f0;
-  --color-border-subtle:    #f1f5f9;
-  --color-border-strong:    #cbd5e1;
+  --color-surface-2:        #f4f6f5;
+  --color-surface-3:        #edf0ee;
+  --color-surface-hover:    #f8faf9;
+  --color-border:           #e2e8e5;
+  --color-border-subtle:    #edf1ef;
+  --color-border-strong:    #cbd5d0;
 
   /* ── Semantic Signals: Amber (Pending / Warning) ── */
   --color-amber-bg:         #fffbeb;
@@ -44,7 +44,7 @@
   --color-rose-text:        #9f1239;
   --color-rose-dot:         #e11d48;
 
-  /* ── Semantic Signals: Emerald (Acknowledged / Success) ── */
+  /* ── Semantic Signals: Emerald (Acknowledged / Healthy) ── */
   --color-emerald-bg:       #ecfdf5;
   --color-emerald-border:   #d1fae5;
   --color-emerald-text:     #065f46;
@@ -57,65 +57,93 @@
   --color-blue-dot:         #4f46e5;
 
   /* ── Semantic Signals: Slate (Resolved / Neutral) ── */
-  --color-slate-bg:         #f8fafc;
-  --color-slate-border:     #e2e8f0;
+  --color-slate-bg:         #f4f6f5;
+  --color-slate-border:     #e2e8e5;
   --color-slate-text:       #334155;
   --color-slate-dot:        #64748b;
 
-  /* ── Premium Enterprise Typography ── */
-  --font-sans:    'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono:    'JetBrains Mono', 'DM Mono', monospace;
+  /* ── Apple-Grade San Francisco Typography ── */
+  --font-sans:    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono:    "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
 
-  /* ── Restrained Radius ── */
-  --radius-xs:    3px;
-  --radius-sm:    5px;
-  --radius:       7px;
-  --radius-md:    9px;
-  --radius-lg:    11px;
-  --radius-xl:    14px;
+  /* ── Restrained Apple-Style Radius ── */
+  --radius-xs:    4px;
+  --radius-sm:    6px;
+  --radius:       8px;
+  --radius-md:    10px;
+  --radius-lg:    12px;
+  --radius-xl:    16px;
 
   /* ── Subtle Elevation & Shadows ── */
-  --shadow-xs:    0 1px 2px 0 rgba(15, 23, 42, 0.04);
-  --shadow-sm:    0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
-  --shadow-md:    0 4px 10px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg:    0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -4px rgba(15, 23, 42, 0.04);
-  --shadow-overlay: 0 20px 40px -8px rgba(15, 23, 42, 0.14), 0 8px 16px -8px rgba(15, 23, 42, 0.06);
+  --shadow-2xs:   0 1px 2px 0 rgba(11, 19, 27, 0.03);
+  --shadow-xs:    0 1px 2px 0 rgba(11, 19, 27, 0.05);
+  --shadow-sm:    0 1px 3px 0 rgba(11, 19, 27, 0.06), 0 1px 2px -1px rgba(11, 19, 27, 0.04);
+  --shadow-md:    0 4px 10px -2px rgba(11, 19, 27, 0.06), 0 2px 4px -2px rgba(11, 19, 27, 0.04);
+  --shadow-lg:    0 12px 24px -4px rgba(11, 19, 27, 0.08), 0 4px 8px -4px rgba(11, 19, 27, 0.04);
+  --shadow-overlay: 0 20px 40px -8px rgba(11, 19, 27, 0.14), 0 8px 16px -8px rgba(11, 19, 27, 0.06);
 
   /* ── Layout Dimensions ── */
-  --sidebar-w:    240px;
-  --topbar-h:     54px;
+  --sidebar-w:    236px;
+  --topbar-h:     56px;
 }
 
 /* ── Global Document ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: -0.011em;
+}
 
 html, body {
   overflow-x: hidden;
   font-size: 13.5px;
   line-height: 1.5;
-  background: var(--color-surface-2);
-  font-family: var(--font-sans);
-  color: var(--color-ink);
+  background: #f4f6f5;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #0b131b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-button, input, textarea, select { font: inherit; }
-button { cursor: pointer; }
-a { color: inherit; text-decoration: none; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #0b131b;
+  letter-spacing: -0.022em;
+}
 
-/* ── Focus Outline System ── */
+button, input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Selection ── */
+::selection {
+  background: #d1fae5;
+  color: #064e3b;
+}
+
+/* ── Focus Outline System (Nvara Emerald Ring) ── */
 :focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid #059669;
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
 }
 
 button:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid #059669;
   outline-offset: 2px;
 }
 
@@ -135,7 +163,7 @@ button:focus-visible,
 /* ── Custom Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #cbd5d0; border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ── Keyframe Animations ── */

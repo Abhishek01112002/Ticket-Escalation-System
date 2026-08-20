@@ -1,6 +1,10 @@
 import type { Escalation } from '../../domain/ticket'
-import { formatDateTime } from '../../domain/sla'
+import { formatHumanDateTime } from '../../domain/sla'
 import { Avatar, Section } from '../ui/layout'
+
+function cleanName(name: string): string {
+  return name.replace(/^Demo\s+/i, '')
+}
 
 export function EscalationSection({
   escalation,
@@ -18,20 +22,20 @@ export function EscalationSection({
         </div>
 
         <p className="text-[12.5px] text-[#9f1239] leading-relaxed">
-          The 24-hour acknowledgement window expired without confirmation from the assigned specialist. This request has been escalated for management oversight.
+          The 24-hour acknowledgement window elapsed without confirmation. This request has been escalated for management review.
         </p>
 
         <div className="pt-3 border-t border-[#fecdd3] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[12px]">
           <div className="flex items-center gap-2">
             <span className="text-[#9f1239] font-medium">Responsible Specialist:</span>
             <div className="flex items-center gap-1.5 font-bold text-[#0f172a]">
-              <Avatar user={escalation.responsiblePerson} size="xs" />
-              <span>{escalation.responsiblePerson.name}</span>
+              <Avatar user={{ name: cleanName(escalation.responsiblePerson.name) }} size="xs" />
+              <span>{cleanName(escalation.responsiblePerson.name)}</span>
             </div>
           </div>
 
-          <span className="text-[#9f1239] font-mono">
-            Triggered {formatDateTime(escalation.triggeredAt)}
+          <span className="text-[#9f1239] text-[12px]">
+            Triggered on {formatHumanDateTime(escalation.triggeredAt)}
           </span>
         </div>
       </div>
