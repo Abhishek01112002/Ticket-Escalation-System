@@ -1,0 +1,71 @@
+name: 🐛 Bug Report
+description: Report a reproducible bug or unexpected system behavior
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much detail as possible.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide step-by-step reproduction instructions.
+      placeholder: |
+        1. Submit request via `POST /v1/client/requests`
+        2. Attempt PM assignment with `POST /v1/pm/requests/:id/assignments`
+        3. Observe error code...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - "apps/api (Fastify REST Backend)"
+        - "apps/worker (SLA Escalation Engine)"
+        - "apps/web (React Frontend)"
+        - "packages/db (PostgreSQL / Migrations)"
+        - "packages/config (Configuration / Env)"
+        - "CI/CD & Tooling"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Node version, OS, Docker version, PostgreSQL version.
+      placeholder: |
+        - OS: Ubuntu 24.04 / Windows 11 / macOS 15
+        - Node version: v22.15.0
+        - PostgreSQL: 16-alpine
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Error Stack Traces
+      description: Please paste any relevant console outputs or structured Pino logs.
+      render: shell

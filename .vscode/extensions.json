@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-playwright.playwright",
+    "bradlc.vscode-tailwindcss",
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg"
+  ]
+}

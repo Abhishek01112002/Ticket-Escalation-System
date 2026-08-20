@@ -1,0 +1,19 @@
+{
+  "name": "@nvara/config",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/env.js",
+  "types": "dist/env.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0"
+  }
+}

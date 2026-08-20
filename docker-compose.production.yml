@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["node", "packages/db/dist/migrate.js"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      NODE_ENV: production
+      DEV_AUTH_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      NODE_ENV: production
+      DEV_AUTH_ENABLED: "false"
+      DEFAULT_ORGANIZATION_NAME: ${DEFAULT_ORGANIZATION_NAME:?DEFAULT_ORGANIZATION_NAME is required}
+      PUBLIC_RATE_LIMIT_PER_MINUTE: ${PUBLIC_RATE_LIMIT_PER_MINUTE:-60}
+      API_PORT: 4000
+      WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      NODE_ENV: production
+      DEV_AUTH_ENABLED: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SLA_POLL_INTERVAL_SECONDS: ${SLA_POLL_INTERVAL_SECONDS:-60}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/nvara-media/nvara-request-management/security/advisories
+    about: Please report sensitive security vulnerabilities privately.
+  - name: Questions & Discussions
+    url: https://github.com/nvara-media/nvara-request-management/discussions
+    about: Ask questions and discuss architecture or operational topics with the team.

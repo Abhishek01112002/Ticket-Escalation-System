@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nvara}
+      POSTGRES_USER: ${POSTGRES_USER:-nvara}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nvara_local_dev_only}
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - nvara_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  nvara_pgdata:

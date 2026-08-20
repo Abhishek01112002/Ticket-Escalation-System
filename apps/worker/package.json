@@ -1,0 +1,15 @@
+{
+  "name": "@nvara/worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nvara/config": "file:../../packages/config",
+    "@nvara/db": "file:../../packages/db",
+    "pino": "^9.6.0"
+  }
+}

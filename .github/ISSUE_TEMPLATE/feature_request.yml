@@ -1,0 +1,49 @@
+name: ✨ Feature Request
+description: Propose an enhancement, new feature, or architectural evolution
+title: "[FEAT]: "
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature or improvement for Nvara!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement / Business Motivation
+      description: Is your feature request related to a problem or workflow bottleneck?
+      placeholder: As an enterprise PM, I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution / Technical Design
+      description: Describe your proposed technical implementation or user interface change.
+      placeholder: Detailed description of the solution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches Considered
+      description: Describe any alternative solutions or features you considered.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Component
+      options:
+        - "apps/api (Fastify REST Backend)"
+        - "apps/worker (SLA Escalation Engine)"
+        - "apps/web (React Frontend)"
+        - "packages/db (PostgreSQL / Migrations)"
+        - "packages/config (Configuration / Env)"
+        - "General Architecture"
+    validations:
+      required: true

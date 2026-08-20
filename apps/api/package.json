@@ -1,0 +1,17 @@
+{
+  "name": "@nvara/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nvara/config": "file:../../packages/config",
+    "@nvara/db": "file:../../packages/db",
+    "fastify": "^5.2.1",
+    "pino": "^9.6.0",
+    "zod": "^3.25.76"
+  }
+}
