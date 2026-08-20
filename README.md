@@ -1,10 +1,10 @@
 # Ticket Escalation System
 
-A simple web application for managing client support requests and automatically escalating overdue tickets if they are not acknowledged within 24 hours.
+A web application for managing client support requests and automatically escalating overdue tickets if they are not acknowledged within 24 hours.
 
 ---
 
-## 📌 About the Project
+## About the Project
 
 This project helps a team manage client tickets from submission to resolution:
 - **Client**: Submits a request through the web portal.
@@ -14,7 +14,7 @@ This project helps a team manage client tickets from submission to resolution:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Fastify, TypeScript
@@ -23,7 +23,7 @@ This project helps a team manage client tickets from submission to resolution:
 
 ---
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 ### 1. Prerequisites
 - [Node.js](https://nodejs.org/) (v22 recommended)
@@ -33,7 +33,7 @@ This project helps a team manage client tickets from submission to resolution:
 
 ### 2. Setup & Installation
 
-Open terminal in the project root folder:
+Open a terminal in the project root directory:
 
 ```bash
 # 1. Install dependencies
@@ -45,7 +45,7 @@ copy .env.example .env
 # 3. Start PostgreSQL in Docker
 npm run db:up
 
-# 4. Create database tables & load demo data
+# 4. Create database tables and load demo data
 npm run db:migrate
 npm run db:seed
 ```
@@ -67,11 +67,11 @@ npm run dev:worker
 npm run dev:web
 ```
 
-Now open **[http://localhost:5173](http://localhost:5173)** in your browser! 🚀
+Now open **[http://localhost:5173](http://localhost:5173)** in your browser.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 Ticket Escalation System/
@@ -87,7 +87,7 @@ Ticket Escalation System/
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Check TypeScript for errors
@@ -99,6 +99,6 @@ npm run test:integration
 
 ---
 
-## 📜 License
+## License
 
 MIT License
