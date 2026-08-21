@@ -21,6 +21,10 @@ export function SlaSection({
     ? '#d97706'
     : '#0f172a'
 
+  const ackTimestamp = request.assignment?.acknowledgedAt || request.sla?.acknowledgedAt
+  const deadlineTimestamp = request.assignment?.acknowledgementDeadline || request.sla?.deadlineAt
+  const assignedTimestamp = request.assignment?.assignedAt
+
   // Construct human-readable primary operational message
   let primaryHeadline = ''
   let primarySubtitle = ''
@@ -30,8 +34,8 @@ export function SlaSection({
     primarySubtitle = 'All deliverables fulfilled and verified'
   } else if (isComplete) {
     primaryHeadline = 'SLA Satisfied'
-    primarySubtitle = request.assignment.acknowledgedAt
-      ? `Acknowledged on time on ${formatHumanDateTime(request.assignment.acknowledgedAt)}`
+    primarySubtitle = ackTimestamp
+      ? `Acknowledged on time on ${formatHumanDateTime(ackTimestamp)}`
       : 'Acknowledged within the 24-hour commitment window'
   } else if (isBreached) {
     primaryHeadline = sla.remainingMs < 0 ? `SLA Breached (${formatRemaining(sla.remainingMs)})` : 'SLA Breached'
@@ -39,7 +43,7 @@ export function SlaSection({
   } else if (isWarning) {
     primaryHeadline = `Due in ${formatRemaining(sla.remainingMs)}`
     primarySubtitle = 'Approaching 24-hour window · Needs specialist attention'
-  } else if (request.assignment.acknowledgementDeadline) {
+  } else if (deadlineTimestamp) {
     primaryHeadline = `Due in ${formatRemaining(sla.remainingMs)}`
     primarySubtitle = 'Awaiting specialist acknowledgement'
   } else {
@@ -73,8 +77,8 @@ export function SlaSection({
               Target Deadline
             </span>
             <span className="text-[13px] font-medium text-[#0f172a]">
-              {request.assignment.acknowledgementDeadline
-                ? formatHumanDateTime(request.assignment.acknowledgementDeadline)
+              {deadlineTimestamp
+                ? formatHumanDateTime(deadlineTimestamp)
                 : 'Pending specialist assignment'}
             </span>
           </div>
@@ -87,19 +91,19 @@ export function SlaSection({
               Assigned Timeline
             </span>
             <span className="font-medium text-[#334155]">
-              {request.assignment.assignedAt
-                ? `Assigned on ${formatHumanDateTime(request.assignment.assignedAt)}`
+              {assignedTimestamp
+                ? `Assigned on ${formatHumanDateTime(assignedTimestamp)}`
                 : 'Not assigned yet'}
             </span>
           </div>
 
-          {request.assignment.acknowledgedAt && (
+          {ackTimestamp && (
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8] block mb-0.5">
                 Acknowledged Timestamp
               </span>
               <span className="font-medium text-[#059669]">
-                {formatHumanDateTime(request.assignment.acknowledgedAt)}
+                {formatHumanDateTime(ackTimestamp)}
               </span>
             </div>
           )}

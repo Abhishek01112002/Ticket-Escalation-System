@@ -241,7 +241,7 @@ export function RequestDetail({
                   </button>
                 )}
 
-                {request.assignment.assignedAt && (
+                {request.assignment?.assignedAt && (
                   <p className="text-[12px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">
                     Assigned on {formatHumanDateTime(request.assignment.assignedAt)}
                   </p>
