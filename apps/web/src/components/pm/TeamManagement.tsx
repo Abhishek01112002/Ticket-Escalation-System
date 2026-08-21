@@ -288,7 +288,10 @@ export function TeamManagement({
             onClick={() => setMatrixOpen(true)}
             className="px-3.5 py-2 bg-white hover:bg-[#f8fafc] text-[#0f172a] border border-[#cbd5e1] rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🛡️ Permissions Matrix</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>Permissions Matrix</span>
           </button>
 
           {isPm && (
@@ -880,7 +883,12 @@ export function TeamManagement({
             {deactivateTarget.activeAssignmentsCount > 0 && (
               <div className="p-3.5 bg-[#fffbeb] border border-[#fef3c7] rounded-xl space-y-2.5 text-xs">
                 <div className="font-bold text-[#92400e] flex items-center gap-1.5">
-                  <span>⚠️ Active Workload Detected</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <span>Active Workload Detected</span>
                   <span>({deactivateTarget.activeAssignmentsCount} open tickets)</span>
                 </div>
 

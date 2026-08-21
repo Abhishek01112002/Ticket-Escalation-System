@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
+    "wipe": "tsx src/wipe-to-scratch.ts",
     "validate:gate": "tsx src/validate-gate.ts"
   },
   "dependencies": {

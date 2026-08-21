@@ -41,22 +41,22 @@ export function generateWhatsAppTaskMessage(input: TaskBriefingInput): string {
     ? `${input.requirement.slice(0, 277)}...`
     : input.requirement
 
-  let msg = `🚀 *NVARA MEDIA — TASK ALLOCATION*\n`
+  let msg = `*NVARA MEDIA — TASK ALLOCATION*\n`
   msg += `━━━━━━━━━━━━━━━━━━━━━━\n`
-  msg += `📋 *Ticket Ref:* \`${input.reference}\`\n`
-  msg += `🏢 *Client:* ${input.clientCompany}${input.clientName ? ` (${input.clientName})` : ''}\n`
-  msg += `🎯 *Service Area:* ${domainLabel}\n`
-  msg += `⚡ *Urgency:* ${urgencyLabel}\n`
-  msg += `⏳ *SLA Window:* 24h Acknowledgement\n`
-  msg += `⏰ *Deadline:* ${deadlineText}\n\n`
-  msg += `📝 *Scope Summary:*\n`
+  msg += `*Ticket Reference:* \`${input.reference}\`\n`
+  msg += `*Client:* ${input.clientCompany}${input.clientName ? ` (${input.clientName})` : ''}\n`
+  msg += `*Service Area:* ${domainLabel}\n`
+  msg += `*Urgency:* ${urgencyLabel}\n`
+  msg += `*SLA Window:* 24h Acknowledgement\n`
+  msg += `*Deadline:* ${deadlineText}\n\n`
+  msg += `*Scope Summary:*\n`
   msg += `"${trimmedRequirement}"\n`
 
   if (input.customNote && input.customNote.trim()) {
-    msg += `\n💬 *PM Note:*\n"${input.customNote.trim()}"\n`
+    msg += `\n*PM Instructions:*\n"${input.customNote.trim()}"\n`
   }
 
-  msg += `\n🔗 *Operations Portal:*\nhttp://127.0.0.1:5173\n`
+  msg += `\n*Operations Workspace:*\nhttp://127.0.0.1:5173\n`
   msg += `━━━━━━━━━━━━━━━━━━━━━━`
 
   return msg

@@ -1,14 +1,96 @@
 import React, { useEffect, useState } from 'react'
 import { listAuditLogs, type AuditLogEntry } from '../../services/userManagementApi'
 
-function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; icon: string } {
+function renderEventIcon(eventType: string) {
+  switch (eventType) {
+    case 'USER_INVITED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4338ca" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+      )
+    case 'USER_CREATED':
+    case 'USER_ONBOARDED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+      )
+    case 'USER_DEACTIVATED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      )
+    case 'USER_REACTIVATED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      )
+    case 'ROLE_CHANGED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      )
+    case 'PASSWORD_CHANGED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      )
+    case 'PASSWORD_RESET_REQUESTED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5L13 7l1.5 1.5L13 10l-1.5-1.5L10 10l1.5 1.5L10 13l-1.5-1.5L7 13l1.5 1.5L7 16" />
+          <circle cx="7.5" cy="7.5" r="5.5" />
+        </svg>
+      )
+    case 'PASSWORD_RESET_COMPLETED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      )
+    case 'REMOTE_SESSIONS_REVOKED':
+    case 'SESSION_REVOKED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+      )
+    default:
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+      )
+  }
+}
+
+function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; icon: React.ReactNode } {
   const m = log.metadata || {}
   const target = m.displayName || m.email || m.targetEmail || 'Team Member'
+  const icon = renderEventIcon(log.eventType)
 
   switch (log.eventType) {
     case 'USER_INVITED':
       return {
-        icon: '✉️',
+        icon,
         headline: (
           <span>
             Generated invite link for <strong className="text-[#0f172a]">{target}</strong> as <span className="font-semibold text-[#4338ca] capitalize">{(m.role || 'specialist').replace('_', ' ')}</span>.
@@ -18,7 +100,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
     case 'USER_CREATED':
     case 'USER_ONBOARDED':
       return {
-        icon: '👤',
+        icon,
         headline: (
           <span>
             Created new team member account for <strong className="text-[#0f172a]">{target}</strong> (<span className="font-medium text-[#059669] capitalize">{(m.role || 'specialist').replace('_', ' ')}</span>).
@@ -29,7 +111,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       const count = Number(m.reassignedCount || m.openAssignmentsCount || 0)
       const strat = m.rebalanceStrategy === 'reassign' ? 'Reassigned to specialist' : 'Released to queue'
       return {
-        icon: '⚠️',
+        icon,
         headline: (
           <span>
             Deactivated <strong className="text-[#0f172a]">{target}</strong>. {count > 0 ? `Workload rebalanced: ${count} active ticket(s) (${strat}).` : 'No active tickets were open.'}
@@ -39,7 +121,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
     }
     case 'USER_REACTIVATED':
       return {
-        icon: '✅',
+        icon,
         headline: (
           <span>
             Reactivated <strong className="text-[#0f172a]">{target}</strong> and restored active workspace access.
@@ -48,7 +130,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       }
     case 'ROLE_CHANGED':
       return {
-        icon: '🔄',
+        icon,
         headline: (
           <span>
             Changed authorization role for <strong className="text-[#0f172a]">{target}</strong> from <span className="font-semibold text-[#64748b]">{String(m.oldRole || 'member').replace('_', ' ')}</span> to <span className="font-semibold text-[#059669]">{String(m.newRole || 'pm').replace('_', ' ')}</span>.
@@ -57,7 +139,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       }
     case 'PASSWORD_CHANGED':
       return {
-        icon: '🔒',
+        icon,
         headline: (
           <span>
             User password updated securely with verified cryptographic hash.
@@ -66,7 +148,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       }
     case 'PASSWORD_RESET_REQUESTED':
       return {
-        icon: '🔑',
+        icon,
         headline: (
           <span>
             Issued one-time password reset link for <strong className="text-[#0f172a]">{m.email || target}</strong>.
@@ -75,7 +157,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       }
     case 'PASSWORD_RESET_COMPLETED':
       return {
-        icon: '🛡️',
+        icon,
         headline: (
           <span>
             Password reset completed and verified via single-use entropy token.
@@ -85,7 +167,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
     case 'REMOTE_SESSIONS_REVOKED':
     case 'SESSION_REVOKED':
       return {
-        icon: '🚪',
+        icon,
         headline: (
           <span>
             Revoked {m.revokedCount ? `${m.revokedCount} ` : ''}active session(s) across connected devices.
@@ -94,7 +176,7 @@ function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; ic
       }
     default:
       return {
-        icon: '📋',
+        icon,
         headline: (
           <span>
             Administrative action <span className="font-mono text-[#0f172a]">{log.eventType}</span> executed.

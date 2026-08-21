@@ -141,7 +141,7 @@ export class AppLogger {
     } else {
       const time = `${COLORS.gray}${formatTime()}${COLORS.reset}`
       console.log(
-        `${time} ${COLORS.yellow}⚠ WARN${COLORS.reset}  ${msg}`,
+        `${time} ${COLORS.yellow}[WARN]${COLORS.reset}  ${msg}`,
         context ? `${COLORS.dim}${JSON.stringify(context)}${COLORS.reset}` : ''
       )
     }
@@ -163,7 +163,7 @@ export class AppLogger {
     } else {
       const time = `${COLORS.gray}${formatTime()}${COLORS.reset}`
       console.error(
-        `${time} ${COLORS.red}✖ ERROR${COLORS.reset} ${msg}`,
+        `${time} ${COLORS.red}[ERROR]${COLORS.reset} ${msg}`,
         context ? `${COLORS.dim}${JSON.stringify(context)}${COLORS.reset}` : ''
       )
       if (err instanceof Error && err.stack) {

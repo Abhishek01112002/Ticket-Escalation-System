@@ -32,7 +32,7 @@ class EmailService {
     }
 
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n📨 [Transactional Email Dispatch]`)
+      console.log(`\n[Transactional Email Dispatch]`)
       console.log(`To: ${email.to}`)
       console.log(`Subject: ${email.subject}`)
       console.log(`Metadata:`, email.metadata || {})
@@ -78,19 +78,17 @@ class EmailService {
       expiresInDays = 7,
     } = params
 
-    const subject = `Invitation to join ${organizationName} on Nvara Media`
+    const subject = `Invitation to join ${organizationName} Operations Workspace`
 
     const text = `
 Hello ${displayName},
 
-${inviterName} has invited you to join the ${organizationName} team as a ${roleName}.
+${inviterName} has invited you to join ${organizationName} as a ${roleName}.
 
-To accept your invitation and configure your secure account password, please open the link below (valid for ${expiresInDays} days):
+Set up your account using this link (valid for ${expiresInDays} days):
 ${inviteUrl}
 
-If you were not expecting this invitation, you can safely disregard this message.
-
-Security Notice: Nvara Media will never ask you to share your password or security credentials.
+If you did not expect this invitation, please ignore this email.
 `.trim()
 
     const html = `
@@ -112,29 +110,29 @@ Security Notice: Nvara Media will never ask you to share your password or securi
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="margin:0;font-size:20px;letter-spacing:-0.02em;">Nvara Operations</h1>
-      <p style="margin:6px 0 0;font-size:13px;color:#94a3b8;">Operations & Incident Escalation Engine</p>
+      <h1 style="margin:0;font-size:20px;letter-spacing:-0.02em;">${organizationName}</h1>
+      <p style="margin:6px 0 0;font-size:13px;color:#94a3b8;">Operations & Escalation Management</p>
     </div>
     <div class="content">
-      <h2 style="font-size:18px;color:#0f172a;margin-top:0;">You're invited to join ${organizationName}</h2>
+      <h2 style="font-size:18px;color:#0f172a;margin-top:0;">Workspace Invitation</h2>
       <p>Hello <strong>${displayName}</strong>,</p>
-      <p><strong>${inviterName}</strong> has invited you to join the operational workspace for <strong>${organizationName}</strong> as a <strong>${roleName}</strong>.</p>
+      <p><strong>${inviterName}</strong> has invited you to join the <strong>${organizationName} Operations Workspace</strong> as a <strong>${roleName}</strong>.</p>
       
       <div style="text-align:center;">
-        <a href="${inviteUrl}" class="btn" style="color:#ffffff;">Accept Invitation & Set Password →</a>
+        <a href="${inviteUrl}" class="btn" style="color:#ffffff;">Accept Invitation & Set Password</a>
       </div>
 
       <p style="font-size:13px;color:#64748b;margin-top:20px;">
-        Or copy and paste this link into your browser:<br>
+        Direct Link:<br>
         <code style="word-break:break-all;background:#f1f5f9;padding:4px 8px;border-radius:6px;font-size:12px;">${inviteUrl}</code>
       </p>
 
       <p style="font-size:12px;color:#94a3b8;margin-top:28px;">
-        ⏱ This one-time link is valid for ${expiresInDays} days and can only be used once.
+        This one-time link is valid for ${expiresInDays} days and can only be used once.
       </p>
     </div>
     <div class="footer">
-      🔒 Enterprise Zero-Trust Protocol · Automated Security Dispatch<br>
+      Enterprise Zero-Trust Protocol · Automated Security Dispatch<br>
       If you did not expect this invitation, please ignore this email.
     </div>
   </div>

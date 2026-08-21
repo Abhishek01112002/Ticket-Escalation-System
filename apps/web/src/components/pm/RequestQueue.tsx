@@ -447,32 +447,32 @@ export function RequestQueue({
           <div className="flex items-center gap-2 px-5 py-2.5 bg-[#f8faf9] flex-wrap">
             <span className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Active:</span>
             {activeFilters.domain && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
-                🏢 {SERVICE_DOMAIN_LABELS[activeFilters.domain as ServiceDomain] ?? activeFilters.domain}
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
+                <span>Domain: {SERVICE_DOMAIN_LABELS[activeFilters.domain as ServiceDomain] ?? activeFilters.domain}</span>
                 <button type="button" onClick={() => onFiltersChange({ ...activeFilters, domain: null })} className="text-[#0369a1] hover:text-[#0284c7] font-bold cursor-pointer">✕</button>
               </span>
             )}
             {activeFilters.urgency && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#fef9c3] text-[#854d0e] border border-[#fde68a]">
-                ⚡ {URGENCY_LABELS[activeFilters.urgency] ?? activeFilters.urgency}
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold bg-[#fef9c3] text-[#854d0e] border border-[#fde68a]">
+                <span>Urgency: {URGENCY_LABELS[activeFilters.urgency] ?? activeFilters.urgency}</span>
                 <button type="button" onClick={() => onFiltersChange({ ...activeFilters, urgency: null })} className="text-[#854d0e] hover:text-[#a16207] font-bold cursor-pointer">✕</button>
               </span>
             )}
             {activeFilters.slaStatus && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#fff1f2] text-[#9f1239] border border-[#ffe4e6]">
-                🔴 {SLA_STATUS_LABELS[activeFilters.slaStatus] ?? activeFilters.slaStatus}
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold bg-[#fff1f2] text-[#9f1239] border border-[#ffe4e6]">
+                <span>SLA: {SLA_STATUS_LABELS[activeFilters.slaStatus] ?? activeFilters.slaStatus}</span>
                 <button type="button" onClick={() => onFiltersChange({ ...activeFilters, slaStatus: null })} className="text-[#9f1239] hover:text-[#be123c] font-bold cursor-pointer">✕</button>
               </span>
             )}
             {activeFilters.assigneeId === 'me' && isPM && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0]">
-                👤 My Tickets
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0]">
+                <span>Assigned: My Tickets</span>
                 <button type="button" onClick={() => onFiltersChange({ ...activeFilters, assigneeId: null })} className="text-[#166534] hover:text-[#15803d] font-bold cursor-pointer">✕</button>
               </span>
             )}
             {selectedDateRange && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-                📅 Last {selectedDateRange}d
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+                <span>Date: Last {selectedDateRange}d</span>
                 <button type="button" onClick={() => { setSelectedDateRange(null); onFiltersChange({ ...activeFilters, dateFrom: null, dateTo: null }) }} className="text-[#475569] hover:text-[#334155] font-bold cursor-pointer">✕</button>
               </span>
             )}

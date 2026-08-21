@@ -90,7 +90,7 @@ export function ActionPanel({
               busy={busy}
               className="w-full h-10 rounded-lg bg-[#059669] hover:bg-[#047857] active:bg-[#064e3b] text-white font-bold shadow-xs"
             >
-              ✓ Acknowledge Request
+              Acknowledge Request
             </PrimaryBtn>
           )}
         </div>
@@ -116,7 +116,7 @@ export function ActionPanel({
               busy={busy}
               className="w-full h-10 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold shadow-xs"
             >
-              ▶ Start Active Work
+              Start Active Work
             </PrimaryBtn>
           )}
         </div>
@@ -142,7 +142,7 @@ export function ActionPanel({
               busy={busy}
               className="w-full h-10 rounded-lg bg-[#059669] hover:bg-[#047857] text-white font-bold shadow-xs"
             >
-              ✓ Mark as Resolved
+              Mark as Resolved
             </PrimaryBtn>
           )}
         </div>

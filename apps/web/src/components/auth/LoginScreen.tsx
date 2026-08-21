@@ -153,7 +153,11 @@ export function LoginScreen({
                       role="alert"
                       className="mb-5 p-3.5 rounded-xl bg-[#fff1f2] border border-[#ffe4e6] text-[#9f1239] text-[13px] font-medium flex items-start gap-2.5 animate-toast"
                     >
-                      <span className="flex-none text-[14px]">⚠</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none mt-0.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
                       <span className="leading-snug">{error}</span>
                     </div>
                   )}
@@ -249,7 +253,10 @@ export function LoginScreen({
                 <>
                   <div className="mb-6">
                     <div className="w-9 h-9 rounded-xl bg-[#ecfdf5] text-[#059669] border border-[#d1fae5] flex items-center justify-center font-bold text-sm mb-4 shadow-xs">
-                      🔑
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5L13 7l1.5 1.5L13 10l-1.5-1.5L10 10l1.5 1.5L10 13l-1.5-1.5L7 13l1.5 1.5L7 16" />
+                        <circle cx="7.5" cy="7.5" r="5.5" />
+                      </svg>
                     </div>
                     <h2 className="text-[20px] font-bold tracking-tight text-[#0b131b]">
                       Reset Your Password
@@ -264,7 +271,11 @@ export function LoginScreen({
                       role="alert"
                       className="mb-5 p-3.5 rounded-xl bg-[#fff1f2] border border-[#ffe4e6] text-[#9f1239] text-[13px] font-medium flex items-start gap-2.5"
                     >
-                      <span className="flex-none">⚠</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none mt-0.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
                       <span className="leading-snug">{error}</span>
                     </div>
                   )}

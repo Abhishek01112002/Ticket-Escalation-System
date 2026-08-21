@@ -37,11 +37,38 @@ function formatDateTime(iso: string): string {
 
 // ─── Milestone Step ────────────────────────────────────────────────────────
 
-const MILESTONE_ICONS: Record<PublicMilestoneType, string> = {
-  REQUEST_RECEIVED:    '📥',
-  SPECIALIST_ASSIGNED: '👤',
-  ACKNOWLEDGED:        '✓',
-  COMPLETED:           '🎉',
+function renderMilestoneIcon(type: PublicMilestoneType) {
+  switch (type) {
+    case 'REQUEST_RECEIVED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 11 12 14 22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+      )
+    case 'SPECIALIST_ASSIGNED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      )
+    case 'ACKNOWLEDGED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      )
+    case 'COMPLETED':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="16 12 12 8 8 12" />
+          <line x1="12" y1="16" x2="12" y2="8" />
+        </svg>
+      )
+  }
 }
 
 function MilestoneStep({
@@ -69,7 +96,11 @@ function MilestoneStep({
             }`}
           aria-hidden="true"
         >
-          {completed ? MILESTONE_ICONS[type] : '○'}
+          {completed ? (
+            renderMilestoneIcon(type)
+          ) : (
+            <span className="w-2 h-2 rounded-full bg-[#cbd5e1]" />
+          )}
         </div>
         {!isLast && (
           <div
@@ -359,8 +390,11 @@ export function RequestTrackerScreen({ onBack, prefillReference }: RequestTracke
           {/* Page heading */}
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#eff6ff] border border-[#bfdbfe] text-[#1d4ed8] text-[12px] font-semibold mb-3">
-              <span aria-hidden="true">🔎</span>
-              Request Status Tracker
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>Request Status Tracker</span>
             </div>
             <h1 className="text-[24px] sm:text-[28px] font-extrabold tracking-tight text-[#0f172a] leading-tight mb-2">
               Track your request status
