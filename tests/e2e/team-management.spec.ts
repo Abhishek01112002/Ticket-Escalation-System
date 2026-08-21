@@ -128,12 +128,18 @@ test.describe('Tier-1 Team Management, Detail Drawer, Matrix & Identity Security
         await deactivateBtn.click()
 
         await expect(page.getByText(/Deactivate Rohan Mehta/i)).toBeVisible()
-        await page.getByRole('button', { name: 'Deactivate Member' }).click()
+        await Promise.all([
+          page.waitForResponse((resp) => resp.url().includes('/v1/pm/users') && resp.status() === 200),
+          page.getByRole('button', { name: 'Deactivate Member' }).click(),
+        ])
 
-        await expect(rohanRow.getByText('Deactivated')).toBeVisible({ timeout: 10_000 })
+        await expect(rohanRow.getByText('Deactivated', { exact: true })).toBeVisible({ timeout: 10_000 })
 
-        await rohanRow.getByRole('button', { name: 'Reactivate' }).click()
-        await expect(rohanRow.getByText('Active')).toBeVisible({ timeout: 10_000 })
+        await Promise.all([
+          page.waitForResponse((resp) => resp.url().includes('/v1/pm/users') && resp.status() === 200),
+          rohanRow.getByRole('button', { name: 'Reactivate' }).click(),
+        ])
+        await expect(rohanRow.getByText('Active', { exact: true })).toBeVisible({ timeout: 10_000 })
       }
     })
   })

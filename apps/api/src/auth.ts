@@ -59,71 +59,7 @@ export async function authenticatePm(
   pool: pg.Pool,
   config: AppConfig
 ): Promise<PmAuth> {
-  if (config.NODE_ENV === 'development') {
-    logger.info(`[AuthDebug] URL: ${request.url}, Cookie: ${request.headers.cookie ?? 'none'}, X-Dev: ${request.headers['x-dev-auth-subject'] ?? 'none'}`)
-  }
-  const token = extractSessionToken(request)
-
-  if (token) {
-    const tokenHash = hashSessionToken(token)
-    const result = await pool.query<{
-      sessionId: string
-      id: string
-      organizationId: string
-      displayName: string
-      email: string
-      organizationName: string
-      role: 'project_manager' | 'internal_team_member'
-      isActive: boolean
-    }>(
-      `SELECT
-        s.id AS "sessionId",
-        u.id,
-        u.organization_id AS "organizationId",
-        u.display_name AS "displayName",
-        u.email,
-        o.name AS "organizationName",
-        r.code AS role,
-        u.is_active AS "isActive"
-      FROM sessions s
-      JOIN users u ON u.id = s.user_id
-      JOIN organizations o ON o.id = u.organization_id
-      JOIN user_roles ur ON ur.user_id = u.id
-      JOIN roles r ON r.id = ur.role_id
-      WHERE s.session_token_hash = $1
-        AND s.revoked_at IS NULL
-        AND s.expires_at > now()`,
-      [tokenHash]
-    )
-
-    if (result.rowCount !== 1) {
-      throw new ApiError(401, 'UNAUTHENTICATED', 'Session is invalid or has expired.')
-    }
-
-    const row = result.rows[0]
-    if (!row.isActive || !['project_manager', 'internal_team_member'].includes(row.role)) {
-      throw new ApiError(403, 'FORBIDDEN', 'Access denied. Account is inactive or unauthorized.')
-    }
-
-    if (request.url.includes('/assignments') && row.role !== 'project_manager') {
-      throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required.')
-    }
-
-    // Touch last_seen_at asynchronously
-    pool.query('UPDATE sessions SET last_seen_at = now() WHERE id = $1', [row.sessionId]).catch(() => {})
-
-    return {
-      id: row.id,
-      organizationId: row.organizationId,
-      displayName: row.displayName,
-      email: row.email,
-      role: row.role,
-      organizationName: row.organizationName,
-      sessionId: row.sessionId,
-    }
-  }
-
-  // Development fallback (only if DEV_AUTH_ENABLED in development mode)
+  // Development fallback (when X-Dev-Auth-Subject header is explicitly provided in development mode)
   const header = request.headers['x-dev-auth-subject']
   const subject =
     config.NODE_ENV === 'development' && config.DEV_AUTH_ENABLED && typeof header === 'string'
@@ -167,6 +103,65 @@ export async function authenticatePm(
           role: row.role,
           organizationName: row.organizationName,
         }
+      }
+    }
+  }
+
+  const token = extractSessionToken(request)
+
+  if (token) {
+    const tokenHash = hashSessionToken(token)
+    const result = await pool.query<{
+      sessionId: string
+      id: string
+      organizationId: string
+      displayName: string
+      email: string
+      organizationName: string
+      role: 'project_manager' | 'internal_team_member'
+      isActive: boolean
+    }>(
+      `SELECT
+        s.id AS "sessionId",
+        u.id,
+        u.organization_id AS "organizationId",
+        u.display_name AS "displayName",
+        u.email,
+        o.name AS "organizationName",
+        r.code AS role,
+        u.is_active AS "isActive"
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      JOIN organizations o ON o.id = u.organization_id
+      JOIN user_roles ur ON ur.user_id = u.id
+      JOIN roles r ON r.id = ur.role_id
+      WHERE s.session_token_hash = $1
+        AND s.revoked_at IS NULL
+        AND s.expires_at > now()`,
+      [tokenHash]
+    )
+
+    if (result.rowCount === 1) {
+      const row = result.rows[0]
+      if (!row.isActive || !['project_manager', 'internal_team_member'].includes(row.role)) {
+        throw new ApiError(403, 'FORBIDDEN', 'Access denied. Account is inactive or unauthorized.')
+      }
+
+      if (request.url.includes('/assignments') && row.role !== 'project_manager') {
+        throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required.')
+      }
+
+      // Touch last_seen_at asynchronously
+      pool.query('UPDATE sessions SET last_seen_at = now() WHERE id = $1', [row.sessionId]).catch(() => {})
+
+      return {
+        id: row.id,
+        organizationId: row.organizationId,
+        displayName: row.displayName,
+        email: row.email,
+        role: row.role,
+        organizationName: row.organizationName,
+        sessionId: row.sessionId,
       }
     }
   }
