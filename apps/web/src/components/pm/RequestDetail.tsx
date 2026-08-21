@@ -186,14 +186,16 @@ export function RequestDetail({
           <TimelineSection timeline={request.timeline} />
 
           {/* 6. Internal Comments Thread (PM + assigned Specialist only) */}
-          <Section title="Internal Notes" label="Internal activity thread">
+          <div className="pt-2">
             <CommentsThread
               ticketReference={request.id}
               currentUserId={user.id}
+              currentUserRole={user.role}
+              currentUserName={user.name}
               initialComments={comments}
               onPost={onPostComment}
             />
-          </Section>
+          </div>
         </div>
 
         {/* ── Right Column: Unified Operational Panel ── */}

@@ -57,12 +57,16 @@ function getAvatarColor(role: string): string {
 export function CommentsThread({
   ticketReference,
   currentUserId,
+  currentUserRole,
+  currentUserName,
   initialComments = [],
   onPost,
   onLoadMore,
 }: {
   ticketReference: string
   currentUserId: string
+  currentUserRole?: string
+  currentUserName?: string
   initialComments?: RequestComment[]
   onPost: (reference: string, body: string) => Promise<RequestComment>
   /** Optional: pull fresh comments from the server. Called on mount. */
@@ -111,6 +115,15 @@ export function CommentsThread({
     const trimmed = draft.trim()
     if (!trimmed || busy) return
 
+    const role = currentUserRole === 'project_manager' ? 'project_manager' : 'internal_team_member'
+    const name = currentUserName || 'You'
+    const initials = name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'YO'
+
     // Build optimistic comment
     const optimistic: RequestComment = {
       id:        `optimistic-${Date.now()}`,
@@ -119,9 +132,9 @@ export function CommentsThread({
       updatedAt: new Date().toISOString(),
       author: {
         id:       currentUserId,
-        name:     'You',
-        role:     'project_manager', // will be replaced by server response
-        initials: 'YO',
+        name:     name,
+        role:     role,
+        initials: initials,
       },
     }
 

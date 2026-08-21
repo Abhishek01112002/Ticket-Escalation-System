@@ -53,16 +53,19 @@ export async function submitClientRequest(input: CreateRequestInput): Promise<Su
       }
     }
 
-    if (response.status === 400 && payload?.error) {
-      throw new ClientRequestApiError(payload.error.message ?? 'Invalid submission data.', payload.error.fields)
+    if (!response.ok) {
+      throw new ClientRequestApiError(
+        payload?.error?.message ?? `Submission failed (${response.status}). Please verify your details and try again.`,
+        payload?.error?.fields
+      )
     }
 
-    throw new Error(payload?.error?.message ?? 'Service temporarily unavailable.')
+    throw new ClientRequestApiError(payload?.error?.message ?? 'Service temporarily unavailable.')
   } catch (err) {
     if (err instanceof ClientRequestApiError) throw err
 
-    // In local development preview mode, if backend database is offline, provide seamless fallback preview
-    if (import.meta.env.DEV) {
+    // In local development preview mode, if backend server is completely offline (network error), provide preview
+    if (import.meta.env.DEV && err instanceof TypeError) {
       const randomHex = Math.random().toString(16).substring(2, 10).toUpperCase()
       const demoRef = `NVARA-${new Date().getFullYear()}-${randomHex}`
       return {

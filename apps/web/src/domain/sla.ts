@@ -15,31 +15,38 @@ export interface SlaSummary {
  * Calculates the operational SLA summary for a given request relative to current time.
  */
 export function getSlaSummary(request: Request, now = new Date()): SlaSummary {
-  const deadline = new Date(request.assignment.acknowledgementDeadline)
-  const remainingMs = deadline.getTime() - now.getTime()
+  const rawDeadline = request.sla?.deadlineAt || request.assignment?.acknowledgementDeadline
+  const deadline = rawDeadline ? new Date(rawDeadline) : null
+  const isValidDate = deadline !== null && !isNaN(deadline.getTime())
+  const remainingMs = isValidDate ? deadline.getTime() - now.getTime() : 0
+  const fallbackDeadline = isValidDate ? deadline : now
 
   if (request.workflowStatus === 'resolved') {
-    return { state: 'complete', deadline, remainingMs, label: 'Resolved' }
+    return { state: 'complete', deadline: fallbackDeadline, remainingMs, label: 'Resolved' }
   }
-  if (request.escalation && request.assignment.acknowledgedAt) {
-    return { state: 'complete', deadline, remainingMs, label: 'Acknowledged after escalation' }
+  if (request.escalation && request.assignment?.acknowledgedAt) {
+    return { state: 'complete', deadline: fallbackDeadline, remainingMs, label: 'Acknowledged after escalation' }
   }
-  if (request.escalation && !request.assignment.acknowledgedAt) {
-    return { state: 'escalated', deadline, remainingMs, label: 'Escalation triggered' }
+  if (request.escalation && !request.assignment?.acknowledgedAt) {
+    return { state: 'escalated', deadline: fallbackDeadline, remainingMs, label: 'Escalation triggered' }
   }
-  if (request.assignment.acknowledgedAt) {
-    return { state: 'complete', deadline, remainingMs, label: 'Acknowledged on time' }
+  if (request.assignment?.acknowledgedAt) {
+    return { state: 'complete', deadline: fallbackDeadline, remainingMs, label: 'Acknowledged on time' }
+  }
+  if (!isValidDate) {
+    return { state: 'on_track', deadline: fallbackDeadline, remainingMs: 0, label: 'No SLA window set' }
   }
   if (remainingMs <= 0) {
-    return { state: 'breached', deadline, remainingMs, label: 'SLA breached' }
+    return { state: 'breached', deadline: fallbackDeadline, remainingMs, label: 'SLA breached' }
   }
   if (remainingMs <= 8 * 60 * 60 * 1000) {
-    return { state: 'warning', deadline, remainingMs, label: 'Due soon' }
+    return { state: 'warning', deadline: fallbackDeadline, remainingMs, label: 'Due soon' }
   }
-  return { state: 'on_track', deadline, remainingMs, label: 'On track' }
+  return { state: 'on_track', deadline: fallbackDeadline, remainingMs, label: 'On track' }
 }
 
 export function formatRemaining(remainingMs: number): string {
+  if (isNaN(remainingMs) || !isFinite(remainingMs)) return '—'
   const absoluteMs = Math.abs(remainingMs)
   const hours = Math.floor(absoluteMs / (60 * 60 * 1000))
   const minutes = Math.floor((absoluteMs % (60 * 60 * 1000)) / (60 * 1000))

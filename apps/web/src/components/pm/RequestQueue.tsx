@@ -107,13 +107,71 @@ export function RequestQueue({
   useEffect(() => { setPage(1) }, [statusTab, search, pageSize, activeFilters])
 
   // ── Count buckets for status tabs ─────────────────────────────────────────
-  const needsAck  = requests.filter(r => r.workflowStatus === 'awaiting_acknowledgement')
-  const escalated = requests.filter(r => Boolean(r.escalation) && r.workflowStatus !== 'resolved')
-  const inProgress = requests.filter(r => r.workflowStatus === 'in_progress')
-  const resolved  = requests.filter(r => r.workflowStatus === 'resolved')
+  // ── Multi-criteria filter pipeline (Domain, Urgency, SLA Status, Date, Assignee, Status, Search) ──
+  const baseFiltered = requests.filter(r => {
+    // 1. Assignee Filter
+    if (activeFilters.assigneeId === 'me') {
+      const isAssigned =
+        r.assignment?.assignee?.id === currentUserId ||
+        (r as any).currentResponsibility?.id === currentUserId ||
+        (r as any).assigneeId === currentUserId
+      if (!isAssigned) return false
+    } else if (activeFilters.assigneeId) {
+      const matchesAssignee =
+        r.assignment?.assignee?.id === activeFilters.assigneeId ||
+        (r as any).currentResponsibility?.id === activeFilters.assigneeId ||
+        (r as any).assigneeId === activeFilters.assigneeId
+      if (!matchesAssignee) return false
+    }
 
-  // ── Client-side filter: status tab + search ────────────────────────────────
-  const afterStatusFilter = requests.filter(r => {
+    // 2. Service Domain Filter
+    if (activeFilters.domain && r.serviceDomain !== activeFilters.domain) {
+      return false
+    }
+
+    // 3. Urgency Filter
+    if (activeFilters.urgency) {
+      const urg = r.clientUrgency || (r as any).urgency
+      if (urg !== activeFilters.urgency) return false
+    }
+
+    // 4. SLA Status Filter
+    if (activeFilters.slaStatus) {
+      const sla = getSlaSummary(r)
+      if (activeFilters.slaStatus === 'healthy' && (sla.state === 'breached' || sla.state === 'escalated')) {
+        return false
+      }
+      if (activeFilters.slaStatus === 'near_breach' && !(sla.remainingMs <= 4 * 60 * 60 * 1000 && sla.remainingMs > 0 && r.workflowStatus !== 'resolved')) {
+        return false
+      }
+      if (activeFilters.slaStatus === 'breached' && sla.state !== 'breached' && sla.state !== 'escalated') {
+        return false
+      }
+    }
+
+    // 5. Date Range Filter
+    if (activeFilters.dateFrom) {
+      const created = new Date(r.createdAt).getTime()
+      const from = new Date(activeFilters.dateFrom).getTime()
+      if (!isNaN(created) && !isNaN(from) && created < from) return false
+    }
+    if (activeFilters.dateTo) {
+      const created = new Date(r.createdAt).getTime()
+      const to = new Date(activeFilters.dateTo).getTime()
+      if (!isNaN(created) && !isNaN(to) && created > to) return false
+    }
+
+    return true
+  })
+
+  // ── Status Tab Buckets (scoped to active criteria) ──
+  const needsAck   = baseFiltered.filter(r => r.workflowStatus === 'awaiting_acknowledgement')
+  const escalated  = baseFiltered.filter(r => Boolean(r.escalation) && r.workflowStatus !== 'resolved')
+  const inProgress = baseFiltered.filter(r => r.workflowStatus === 'in_progress')
+  const resolved   = baseFiltered.filter(r => r.workflowStatus === 'resolved')
+
+  // ── Status Tab Filter ──
+  const afterStatusFilter = baseFiltered.filter(r => {
     if (statusTab === 'needs_ack')  return r.workflowStatus === 'awaiting_acknowledgement'
     if (statusTab === 'escalated')  return Boolean(r.escalation) && r.workflowStatus !== 'resolved'
     if (statusTab === 'in_progress') return r.workflowStatus === 'in_progress'
@@ -121,13 +179,16 @@ export function RequestQueue({
     return true
   })
 
+  // ── Full-text Search ──
   const searchLower = search.toLowerCase().trim()
   const filteredRequests = searchLower
     ? afterStatusFilter.filter(r =>
         r.id.toLowerCase().includes(searchLower) ||
         r.subject.toLowerCase().includes(searchLower) ||
+        (r.description && r.description.toLowerCase().includes(searchLower)) ||
         r.client.name.toLowerCase().includes(searchLower) ||
-        r.client.company.toLowerCase().includes(searchLower)
+        r.client.company.toLowerCase().includes(searchLower) ||
+        SERVICE_DOMAIN_LABELS[r.serviceDomain]?.toLowerCase().includes(searchLower)
       )
     : afterStatusFilter
 

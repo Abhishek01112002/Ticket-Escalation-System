@@ -35,26 +35,26 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
       <div
-        className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         role="dialog"
         aria-labelledby="matrix-title"
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-6 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
           <div>
-            <h2 id="matrix-title" className="text-lg font-bold text-white">
-              Role & Permissions Matrix
+            <h2 id="matrix-title" className="text-[17px] font-bold text-[#0f172a]">
+              Role &amp; Permissions Matrix
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-[12px] text-[#64748b] mt-0.5">
               Access control and privilege boundaries across Nvara Operations.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-[#64748b] hover:text-[#0f172a] p-2 rounded-lg hover:bg-[#e2e8f0] transition-colors cursor-pointer"
             aria-label="Close permissions matrix"
           >
             ✕
@@ -65,43 +65,43 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {PERMISSIONS.map((group) => (
             <div key={group.category} className="space-y-2">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <h3 className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">
                 {group.category}
               </h3>
-              <div className="bg-slate-800/40 border border-slate-800 rounded-xl overflow-hidden">
+              <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-xs">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-800 font-medium">
+                  <thead className="bg-[#f8fafc] text-[#475569] border-b border-[#e2e8f0] font-semibold text-[11.5px]">
                     <tr>
                       <th className="p-3">Capability</th>
                       <th className="p-3 text-center w-28">Specialist</th>
                       <th className="p-3 text-center w-32">Project Manager</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  <tbody className="divide-y divide-[#e2e8f0] text-[#334155]">
                     {group.items.map((item) => (
-                      <tr key={item.name} className="hover:bg-slate-800/20">
+                      <tr key={item.name} className="hover:bg-[#f8fafc] transition-colors">
                         <td className="p-3">
-                          <span className="font-medium text-white block">{item.name}</span>
-                          <span className="text-[11px] text-slate-400">{item.desc}</span>
+                          <span className="font-semibold text-[#0f172a] block">{item.name}</span>
+                          <span className="text-[11px] text-[#64748b]">{item.desc}</span>
                         </td>
                         <td className="p-3 text-center">
                           {item.specialist ? (
-                            <span className="inline-block w-5 h-5 rounded-full bg-emerald-950/60 text-emerald-400 text-center leading-5 font-bold border border-emerald-800/50">
+                            <span className="inline-block w-5 h-5 rounded-full bg-[#ecfdf5] text-[#065f46] text-center leading-5 font-bold border border-[#d1fae5]">
                               ✓
                             </span>
                           ) : (
-                            <span className="inline-block w-5 h-5 rounded-full bg-slate-800 text-slate-500 text-center leading-5">
+                            <span className="inline-block w-5 h-5 rounded-full bg-[#f1f5f9] text-[#94a3b8] text-center leading-5">
                               —
                             </span>
                           )}
                         </td>
                         <td className="p-3 text-center">
                           {item.pm ? (
-                            <span className="inline-block w-5 h-5 rounded-full bg-purple-950/60 text-purple-400 text-center leading-5 font-bold border border-purple-800/50">
+                            <span className="inline-block w-5 h-5 rounded-full bg-[#eef2ff] text-[#4338ca] text-center leading-5 font-bold border border-[#c7d2fe]">
                               ✓
                             </span>
                           ) : (
-                            <span className="inline-block w-5 h-5 rounded-full bg-slate-800 text-slate-500 text-center leading-5">
+                            <span className="inline-block w-5 h-5 rounded-full bg-[#f1f5f9] text-[#94a3b8] text-center leading-5">
                               —
                             </span>
                           )}
@@ -116,11 +116,11 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex justify-end">
+        <div className="p-4 border-t border-[#e2e8f0] bg-[#f8fafc] flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors"
+            className="px-4 py-2 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
           >
             Close Matrix
           </button>
