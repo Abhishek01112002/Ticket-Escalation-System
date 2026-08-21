@@ -14,6 +14,7 @@ import {
   verifyPassword,
 } from './crypto.js'
 import { emailService } from './emailService.js'
+import { logger } from './logger.js'
 
 export type PmAuth = {
   id: string
@@ -58,6 +59,9 @@ export async function authenticatePm(
   pool: pg.Pool,
   config: AppConfig
 ): Promise<PmAuth> {
+  if (config.NODE_ENV === 'development') {
+    logger.info(`[AuthDebug] URL: ${request.url}, Cookie: ${request.headers.cookie ?? 'none'}, X-Dev: ${request.headers['x-dev-auth-subject'] ?? 'none'}`)
+  }
   const token = extractSessionToken(request)
 
   if (token) {

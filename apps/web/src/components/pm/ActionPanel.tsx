@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { Request, User } from '../../domain/ticket'
+import type { Request, TeamMemberCapacity, User } from '../../domain/ticket'
 import { PrimaryBtn } from '../ui/buttons'
 
 type DetailRequest = Request & { version: number }
-type Member = { id: string; name: string; email: string }
+type Member = TeamMemberCapacity
 
 function cleanName(name: string): string {
   if (!name) return 'Specialist'
@@ -12,11 +12,15 @@ function cleanName(name: string): string {
   return cleaned || 'Specialist'
 }
 
+/** Returns a capacity label with colour coding: green 0–1, amber 2–3, red 4+ */
+function workloadLabel(count: number): string {
+  const icon = count === 0 ? '●' : count <= 1 ? '●' : count <= 3 ? '●' : '●'
+  return `${icon} ${count} active`
+}
+
 function cleanSpecialistLabel(member: Member): string {
   const name = cleanName(member.name)
-  const isPM = member.email.includes('pm') || member.id === 'usr-pm-1'
-  const role = isPM ? 'Project Lead' : 'Senior Specialist'
-  return `${name} · ${role}`
+  return `${name}  ·  ${workloadLabel(member.activeAssignmentsCount)}`
 }
 
 export function ActionPanel({
@@ -156,19 +160,47 @@ export function ActionPanel({
             </p>
 
             {members.length > 0 ? (
-              <select
-                id="select-assignee"
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                disabled={busy}
-                className="w-full h-10 px-3.5 rounded-lg border border-[#cbd5e1] bg-white text-[13px] font-medium text-[#0f172a] hover:border-[#94a3b8] focus:border-[#0f172a] focus:ring-2 focus:ring-[#0f172a]/10 outline-none transition-all disabled:opacity-50 cursor-pointer shadow-xs"
-              >
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {cleanSpecialistLabel(m)}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-1">
+                {members.map(m => {
+                  const name = cleanName(m.name)
+                  const count = m.activeAssignmentsCount
+                  const isSelected = selectedUserId === m.id
+                  const capacityColor =
+                    count === 0 ? { bg: '#f0fdf4', dot: '#16a34a', text: '#166534' }
+                    : count <= 1 ? { bg: '#ecfdf5', dot: '#059669', text: '#065f46' }
+                    : count <= 3 ? { bg: '#fffbeb', dot: '#d97706', text: '#92400e' }
+                    :              { bg: '#fff1f2', dot: '#e11d48', text: '#9f1239' }
+
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSelectedUserId(m.id)}
+                      disabled={busy}
+                      className={`flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-50 ${
+                        isSelected
+                          ? 'border-[#0f172a] bg-[#0f172a] text-white shadow-xs'
+                          : 'border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8] hover:bg-[#f8fafc]'
+                      }`}
+                    >
+                      <span className="text-[13px] font-semibold truncate">{name}</span>
+                      <span
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold flex-none ml-2"
+                        style={isSelected
+                          ? { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }
+                          : { background: capacityColor.bg, color: capacityColor.text }
+                        }
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-none"
+                          style={{ background: isSelected ? 'rgba(255,255,255,0.8)' : capacityColor.dot }}
+                        />
+                        {count} active
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             ) : (
               <p className="text-[12px] text-[#64748b]">Loading team members...</p>
             )}

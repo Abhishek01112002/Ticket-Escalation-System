@@ -52,11 +52,16 @@ try {
 
   const users = [
     ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001', hashPassword(pmPassword)],
-    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-rohan-subject-001', hashPassword(rohanPassword)],
+    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-internal-subject-001', hashPassword(rohanPassword)],
     ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001', hashPassword(priyaPassword)],
   ]
 
   for (const [displayName, email, role, authSubject, passwordHash] of users) {
+    await client.query(
+      'UPDATE users SET auth_subject = NULL WHERE auth_subject = $1 AND email <> $2',
+      [authSubject, email]
+    )
+
     let user = (
       await client.query(
         'SELECT id FROM users WHERE organization_id = $1 AND email = $2',

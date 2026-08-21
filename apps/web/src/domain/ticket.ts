@@ -130,3 +130,61 @@ export interface CreateRequestInput {
 }
 
 export const ACKNOWLEDGEMENT_SLA_HOURS = 24
+
+// ── Internal Comments Thread ───────────────────────────────────────────────────
+
+/** Author metadata for a comment — both PM and Specialist can author. */
+export interface CommentAuthor {
+  id: string
+  name: string
+  role: 'project_manager' | 'internal_team_member'
+  initials: string
+}
+
+/**
+ * Internal activity note on a ticket — visible only to PM and the assigned
+ * Specialist. Never exposed through the public tracker or client portal.
+ */
+export interface RequestComment {
+  id: string
+  body: string
+  createdAt: string
+  updatedAt: string
+  author: CommentAuthor
+}
+
+// ── Team Member Capacity ───────────────────────────────────────────────────────
+
+/**
+ * Extended team member with real-time active assignment count for workload
+ * capacity balancing in the reassign dropdown.
+ */
+export interface TeamMemberCapacity {
+  id: string
+  name: string
+  email: string
+  /** Number of currently active (non-ended) ticket assignments. */
+  activeAssignmentsCount: number
+}
+
+// ── Advanced Filter State ─────────────────────────────────────────────────────
+
+export interface RequestFilters {
+  /** 'me' resolves to the current authenticated user on the server */
+  assigneeId: string | null
+  domain:     ServiceDomain | null
+  urgency:    ClientUrgency | null
+  /** 'healthy' | 'near_breach' | 'breached' */
+  slaStatus:  string | null
+  dateFrom:   string | null
+  dateTo:     string | null
+}
+
+export const DEFAULT_FILTERS: RequestFilters = {
+  assigneeId: null,
+  domain:     null,
+  urgency:    null,
+  slaStatus:  null,
+  dateFrom:   null,
+  dateTo:     null,
+}

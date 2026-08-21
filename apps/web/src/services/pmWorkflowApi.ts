@@ -1,4 +1,4 @@
-import { getPmRequest, removeLocalInMemoryRequest } from './pmRequestApi'
+import { getPmRequest, listTeamMembersWithCapacity, listRequestComments, postRequestComment, removeLocalInMemoryRequest } from './pmRequestApi'
 import { getAuthHeaders } from './devAuth'
 
 const headers = (): Record<string, string> => ({
@@ -63,20 +63,5 @@ export async function deleteRequest(id: string): Promise<void> {
   }
 }
 
-export async function listTeamMembers() {
-  try {
-    const response = await fetch('/v1/pm/team-members', { headers: headers() })
-    if (!response.ok) throw new Error('Unable to load internal team members.')
-    return (await response.json()).teamMembers as Array<{ id: string; name: string; email: string }>
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      return [
-        { id: 'u1', name: 'Rohan Mehta', email: 'rohan.mehta@nvaramedia.com' },
-        { id: 'u2', name: 'Priya Sharma', email: 'priya.sharma@nvaramedia.com' },
-      ]
-    }
-    throw err
-  }
-}
-
-export { getPmRequest }
+// Re-export capacity-aware team members and comment functions for portal consumption
+export { listTeamMembersWithCapacity as listTeamMembers, listRequestComments, postRequestComment, getPmRequest }

@@ -136,7 +136,7 @@ export function Landing({ onPortal }: { onPortal: (p: ActivePortal) => void }) {
 
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-[16px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#4f46e5] transition-colors">
-                  Operations Workspace
+                  Operations &amp; PM Workspace
                 </h2>
                 <span className="text-[11px] font-semibold text-[#4f46e5] bg-[#eef2ff] px-2 py-0.5 rounded-full border border-[#e0e7ff]">
                   Internal

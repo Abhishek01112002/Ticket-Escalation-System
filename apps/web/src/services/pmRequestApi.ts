@@ -1,4 +1,4 @@
-import type { Request, ServiceDomain, TimelineEvent, User } from '../domain/ticket'
+import type { Request, RequestComment, RequestFilters, ServiceDomain, TeamMemberCapacity, TimelineEvent, User } from '../domain/ticket'
 import { getAuthHeaders } from './devAuth'
 
 const headers = getAuthHeaders
@@ -384,13 +384,78 @@ let inMemoryRequests: Request[] = [
   },
 ]
 
-export async function listPmRequests(): Promise<Request[]> {
+export async function listPmRequests(filters?: Partial<RequestFilters>): Promise<Request[]> {
   try {
-    const data = await get<{ requests: Summary[] }>('/v1/pm/requests')
+    // Build query string from non-null filter values
+    const params = new URLSearchParams()
+    if (filters) {
+      for (const [key, val] of Object.entries(filters)) {
+        if (val !== null && val !== undefined && val !== '') {
+          params.set(key, String(val))
+        }
+      }
+    }
+    const qs = params.toString()
+    const data = await get<{ requests: Summary[] }>(`/v1/pm/requests${qs ? `?${qs}` : ''}`)
     return data.requests.map(map)
   } catch (err) {
     if (import.meta.env.DEV) {
       return inMemoryRequests
+    }
+    throw err
+  }
+}
+
+// ── Comments API ──────────────────────────────────────────────────────────────
+
+export async function listRequestComments(reference: string): Promise<RequestComment[]> {
+  try {
+    const data = await get<{ comments: RequestComment[] }>(
+      `/v1/pm/requests/${encodeURIComponent(reference)}/comments`,
+    )
+    return data.comments
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      // Return empty array in dev (no seeded comments)
+      return []
+    }
+    throw err
+  }
+}
+
+export async function postRequestComment(
+  reference: string,
+  body: string,
+): Promise<RequestComment> {
+  const response = await fetch(`/v1/pm/requests/${encodeURIComponent(reference)}/comments`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ body }),
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    throw new Error(data?.error?.message ?? 'Failed to post comment.')
+  }
+  return (await response.json()).comment as RequestComment
+}
+
+// ── Team Members with Capacity ────────────────────────────────────────────────
+
+export async function listTeamMembersWithCapacity(): Promise<TeamMemberCapacity[]> {
+  try {
+    const response = await fetch('/v1/pm/team-members', {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    })
+    if (!response.ok) throw new Error('Unable to load team members.')
+    return (await response.json()).teamMembers as TeamMemberCapacity[]
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      return [
+        { id: 'u1', name: 'Rohan Mehta',  email: 'rohan.mehta@nvaramedia.com', activeAssignmentsCount: 3 },
+        { id: 'u2', name: 'Priya Sharma', email: 'priya.sharma@nvaramedia.com', activeAssignmentsCount: 1 },
+      ]
     }
     throw err
   }

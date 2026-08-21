@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Request, User } from '../../domain/ticket'
+import type { Request, RequestComment, TeamMemberCapacity, User } from '../../domain/ticket'
 import { SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
 import { formatHumanDateTime, getSlaSummary } from '../../domain/sla'
 import { EscalationBadge, StatusBadge, UrgencyBadge } from '../ui/badges'
@@ -9,9 +9,10 @@ import { SlaSection } from './SlaSection'
 import { EscalationSection } from './EscalationSection'
 import { TimelineSection } from './TimelineSection'
 import { ActionPanel } from './ActionPanel'
+import { CommentsThread } from './CommentsThread'
 
 type DetailRequest = Request & { version: number }
-type Member = { id: string; name: string; email: string }
+type Member = TeamMemberCapacity
 
 function cleanName(name: string): string {
   if (!name) return 'Specialist'
@@ -50,6 +51,7 @@ export function RequestDetail({
   request,
   user,
   members,
+  comments,
   busy,
   onBack,
   onAssign,
@@ -57,10 +59,12 @@ export function RequestDetail({
   onStartWork,
   onResolve,
   onDelete,
+  onPostComment,
 }: {
   request: DetailRequest
   user: User
   members: Member[]
+  comments: RequestComment[]
   busy: boolean
   onBack: () => void
   onAssign: (userId: string) => void
@@ -68,6 +72,7 @@ export function RequestDetail({
   onStartWork: () => void
   onResolve: () => void
   onDelete?: (id: string) => void
+  onPostComment: (reference: string, body: string) => Promise<RequestComment>
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const sla = getSlaSummary(request)
@@ -179,6 +184,16 @@ export function RequestDetail({
 
           {/* 5. Chronological Request History */}
           <TimelineSection timeline={request.timeline} />
+
+          {/* 6. Internal Comments Thread (PM + assigned Specialist only) */}
+          <Section title="Internal Notes" label="Internal activity thread">
+            <CommentsThread
+              ticketReference={request.id}
+              currentUserId={user.id}
+              initialComments={comments}
+              onPost={onPostComment}
+            />
+          </Section>
         </div>
 
         {/* ── Right Column: Unified Operational Panel ── */}

@@ -28,6 +28,10 @@ export function TeamManagement({
   const [roleFilter, setRoleFilter] = useState<'all' | 'project_manager' | 'internal_team_member'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
+  // Pagination state
+  const [page, setPage]         = useState(1)
+  const [pageSize, setPageSize] = useState(8)
+
   // Selected Member for Detail Drawer
   const [selectedMember, setSelectedMember] = useState<OrganizationUser | null>(null)
   const [matrixOpen, setMatrixOpen] = useState(false)
@@ -219,9 +223,20 @@ export function TeamManagement({
     (u) => u.isActive && u.id !== deactivateTarget?.id && u.role === 'internal_team_member'
   )
 
-  const activeCount = users.filter((u) => u.isActive).length
-  const pmCount = users.filter((u) => u.isActive && u.role === 'project_manager').length
-  const specialistCount = users.filter((u) => u.isActive && u.role === 'internal_team_member').length
+  const activeCount      = users.filter((u) => u.isActive).length
+  const pmCount          = users.filter((u) => u.isActive && u.role === 'project_manager').length
+  const specialistCount  = users.filter((u) => u.isActive && u.role === 'internal_team_member').length
+
+  // Pagination derived values
+  const totalItems  = filteredUsers.length
+  const totalPages  = Math.max(1, Math.ceil(totalItems / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const startIdx    = (currentPage - 1) * pageSize
+  const endIdx      = Math.min(startIdx + pageSize, totalItems)
+  const pagedUsers  = filteredUsers.slice(startIdx, endIdx)
+
+  // Reset to page 1 whenever the filter criteria change
+  useEffect(() => { setPage(1) }, [search, roleFilter, statusFilter, pageSize])
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -392,7 +407,7 @@ export function TeamManagement({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-text-secondary">
-                    {filteredUsers.map((u) => {
+                    {pagedUsers.map((u) => {
                       const initials = u.displayName
                         .split(' ')
                         .map((n) => n[0])
@@ -514,6 +529,82 @@ export function TeamManagement({
                   </tbody>
                 </table>
               </div>
+
+              {/* ── Pagination Footer ─────────────────────────────────── */}
+              {totalPages > 1 || totalItems > 8 ? (
+                <div className="px-5 py-3.5 border-t border-border bg-surface-elevated/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 text-[12px] text-text-muted">
+                    <span>
+                      Showing <strong className="text-text-primary">{startIdx + 1}–{endIdx}</strong> of{' '}
+                      <strong className="text-text-primary">{totalItems}</strong> members
+                    </span>
+                    <span className="text-border">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Per page:</span>
+                      <select
+                        value={pageSize}
+                        onChange={e => setPageSize(Number(e.target.value))}
+                        className="h-7 px-2 rounded-lg border border-border bg-surface text-[11.5px] font-medium text-text-primary focus:border-brand outline-none cursor-pointer"
+                      >
+                        <option value={8}>8</option>
+                        <option value={16}>16</option>
+                        <option value={32}>32</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="h-7.5 px-2.5 rounded-lg border border-border bg-surface text-text-primary text-[12px] font-medium hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none"
+                    >
+                      ‹ Prev
+                    </button>
+
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      // Smart windowed page chips
+                      let pNum: number
+                      if (totalPages <= 7) {
+                        pNum = i + 1
+                      } else if (currentPage <= 4) {
+                        pNum = i + 1
+                        if (i === 6) pNum = totalPages
+                      } else if (currentPage >= totalPages - 3) {
+                        pNum = i === 0 ? 1 : totalPages - 6 + i
+                      } else {
+                        const map = [1, currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2, totalPages]
+                        pNum = map[i]
+                      }
+                      const isActive = pNum === currentPage
+                      return (
+                        <button
+                          key={`pg-${pNum}-${i}`}
+                          type="button"
+                          onClick={() => setPage(pNum)}
+                          className={`w-7.5 h-7.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer select-none flex items-center justify-center ${
+                            isActive
+                              ? 'bg-brand text-white shadow-xs'
+                              : 'border border-border bg-surface text-text-muted hover:bg-surface-elevated hover:text-text-primary'
+                          }`}
+                        >
+                          {pNum}
+                        </button>
+                      )
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="h-7.5 px-2.5 rounded-lg border border-border bg-surface text-text-primary text-[12px] font-medium hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none"
+                    >
+                      Next ›
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
         </>

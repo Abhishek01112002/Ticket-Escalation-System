@@ -42,8 +42,8 @@ test.describe('Tier-1 Team Management, Detail Drawer, Matrix & Identity Security
 
       await expect(page.getByRole('heading', { name: 'Team Management' })).toBeVisible({ timeout: 10_000 })
       await expect(page.getByText('Active Members')).toBeVisible()
-      await expect(page.locator('tbody').getByText('Rohan Mehta', { exact: true })).toBeVisible()
-      await expect(page.locator('tbody').getByText('Priya Sharma', { exact: true })).toBeVisible()
+      await expect(page.locator('tbody').getByText('Rohan Mehta', { exact: true })).toBeVisible({ timeout: 10_000 })
+      await expect(page.locator('tbody').getByText('Priya Sharma', { exact: true })).toBeVisible({ timeout: 10_000 })
 
       const searchInput = page.getByPlaceholder(/Search by name or email/i)
       await searchInput.fill('Rohan')
@@ -110,7 +110,7 @@ test.describe('Tier-1 Team Management, Detail Drawer, Matrix & Identity Security
 
       await page.getByRole('button', { name: 'Generate Invite Link', exact: true }).click()
 
-      await expect(page.getByText('Team Member Created')).toBeVisible({ timeout: 10_000 })
+      await expect(page.getByRole('heading', { name: 'Team Member Created' })).toBeVisible({ timeout: 10_000 })
       await expect(page.getByRole('button', { name: 'Copy Invite Link' })).toBeVisible()
 
       await page.getByRole('button', { name: 'Done' }).click()
@@ -156,7 +156,7 @@ test.describe('Tier-1 Team Management, Detail Drawer, Matrix & Identity Security
       await page.getByLabel('Work Email Address').fill(testEmail)
       await page.getByLabel('Initial Password (Optional)').fill(initialPass)
       await page.getByRole('button', { name: 'Add Member', exact: true }).click()
-      await expect(page.getByText('Team Member Created')).toBeVisible({ timeout: 10_000 })
+      await expect(page.getByRole('heading', { name: 'Team Member Created' })).toBeVisible({ timeout: 10_000 })
       await page.getByRole('button', { name: 'Done' }).click()
 
       // 2. Sign out

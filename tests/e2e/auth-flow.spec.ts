@@ -21,18 +21,25 @@ test.describe('Nvara Operations Workspace Authentication & Session Flow', () => 
     // 4. Invalid credentials show error
     await page.getByLabel(/Work Email/i).fill('pm@nvaramedia.com')
     await page.getByLabel(/^Password/i).fill('WrongPassword123!')
-    await page.locator('button[type="submit"]').click()
+    await Promise.all([
+      page.waitForResponse((res) => res.url().includes('/v1/auth/login') && res.status() === 401),
+      page.locator('button[type="submit"]').click(),
+    ])
     await expect(page.getByRole('alert')).toContainText('Invalid email or password.')
 
     // 5. Valid login succeeds and loads Operations Workspace
     const pmPass = process.env.DEV_PM_PASSWORD || 'Nvara#PM2026!Secure'
-    await page.getByLabel(/^Password/i).fill(pmPass)
-    await page.locator('button[type="submit"]').click()
-    await expect(page.getByRole('button', { name: 'Operations Queue' }).first()).toBeVisible({ timeout: 15000 })
+    await page.getByLabel(/Work Email/i).fill('pm@nvaramedia.com')
+    await page.locator('input#password').fill(pmPass)
+    await Promise.all([
+      page.waitForResponse((res) => res.url().includes('/v1/auth/login') && res.status() === 200),
+      page.locator('button[type="submit"]').click(),
+    ])
+    await expect(page.getByRole('heading', { name: 'Operations Queue' })).toBeVisible({ timeout: 15000 })
 
     // 6. Browser refresh preserves authenticated session
     await page.reload()
-    await expect(page.getByRole('button', { name: 'Operations Queue' }).first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('heading', { name: 'Operations Queue' })).toBeVisible({ timeout: 15000 })
 
     // 7. Sign out revokes session and returns to Landing
     const mobileMenu = page.getByRole('button', { name: /Open navigation/i })

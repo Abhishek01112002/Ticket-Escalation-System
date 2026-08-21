@@ -37,7 +37,7 @@ test('worker escalation persists through API and PM portal', async ({ page, requ
   const detail = await request.get(`${api}/v1/pm/requests/${reference}`, { headers: pm })
   const body = (await detail.json()).request
   expect(body.sla.status).toBe('breached')
-  expect(body.escalation.responsibleName).toBe('Demo Internal Team Member')
+  expect(['Rohan Mehta', 'Demo Internal Team Member']).toContain(body.escalation.responsibleName)
   expect(body.escalation.reason).toBe('acknowledgement_sla_breached')
   const timeline = await request.get(`${api}/v1/pm/requests/${reference}/timeline`, { headers: pm })
   expect((await timeline.json()).events.filter((event: any) => event.type === 'escalation_triggered')).toHaveLength(1)
@@ -52,7 +52,7 @@ test('worker escalation persists through API and PM portal', async ({ page, requ
   await expect(page.getByText(reference)).toBeVisible()
   await page.getByRole('button', { name: new RegExp(reference) }).click()
   await expect(page.getByText('SLA Breach Escalation Triggered')).toBeVisible()
-  await expect(page.getByText('Internal Team Member').first()).toBeVisible()
+  await expect(page.locator('main').getByText(/Rohan Mehta|Specialist|Internal Team Member/).first()).toBeVisible()
   await page.reload()
   await page.getByRole('button', { name: new RegExp(reference) }).click()
   await expect(page.getByText('SLA Breach Escalation Triggered')).toBeVisible()

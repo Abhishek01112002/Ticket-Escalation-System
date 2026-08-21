@@ -71,21 +71,43 @@ export function registerUserManagementRoutes(
         r.code AS role,
         u.is_active,
         u.created_at,
-        COUNT(DISTINCT a_active.id)::int AS active_assignments_count,
-        COUNT(DISTINCT a_resolved.id)::int AS resolved_assignments_count,
-        COUNT(DISTINCT sla.id)::int AS total_sla_count,
-        COUNT(DISTINCT sla.id) FILTER (WHERE sla.is_late = true OR sla.status = 'breached')::int AS breached_sla_count,
-        AVG(EXTRACT(EPOCH FROM (a_resolved.ended_at - a_resolved.assigned_at))) FILTER (WHERE a_resolved.ended_at IS NOT NULL) AS avg_resolution_seconds
-       FROM users u
-       JOIN user_roles ur ON ur.user_id = u.id
-       JOIN roles r ON r.id = ur.role_id
-       LEFT JOIN assignments a_active ON a_active.assignee_user_id = u.id AND a_active.ended_at IS NULL
-       LEFT JOIN assignments a_resolved ON a_resolved.assignee_user_id = u.id AND a_resolved.ended_at IS NOT NULL
-       LEFT JOIN assignments a_all ON a_all.assignee_user_id = u.id
-       LEFT JOIN sla_records sla ON sla.assignment_id = a_all.id
-       WHERE u.organization_id = $1
-       GROUP BY u.id, u.display_name, u.email, r.code, u.is_active, u.created_at
-       ORDER BY u.created_at ASC`,
+        COALESCE(act.cnt, 0)::int AS active_assignments_count,
+        COALESCE(res.cnt, 0)::int AS resolved_assignments_count,
+        COALESCE(sla_agg.total_sla, 0)::int AS total_sla_count,
+        COALESCE(sla_agg.breached_sla, 0)::int AS breached_sla_count,
+        res.avg_resolution_seconds
+      FROM users u
+      JOIN user_roles ur ON ur.user_id = u.id
+      JOIN roles r ON r.id = ur.role_id
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt
+        FROM assignments
+        WHERE assignee_user_id = u.id AND ended_at IS NULL
+      ) act ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt,
+               AVG(EXTRACT(EPOCH FROM (ended_at - assigned_at))) AS avg_resolution_seconds
+        FROM assignments
+        WHERE assignee_user_id = u.id AND ended_at IS NOT NULL
+      ) res ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(s.id)::int AS total_sla,
+               COUNT(s.id) FILTER (WHERE s.is_late = true OR s.status = 'breached')::int AS breached_sla
+        FROM assignments a
+        JOIN sla_records s ON s.assignment_id = a.id
+        WHERE a.assignee_user_id = u.id
+      ) sla_agg ON true
+      WHERE u.organization_id = $1
+      ORDER BY
+        CASE
+          WHEN u.email = 'pm@nvaramedia.com' THEN 1
+          WHEN u.email = 'rohan.mehta@nvaramedia.com' THEN 2
+          WHEN u.email = 'priya.sharma@nvaramedia.com' THEN 3
+          ELSE 4
+        END,
+        u.is_active DESC,
+        COALESCE(act.cnt, 0) DESC,
+        u.display_name ASC`,
       [user.organizationId]
     )
 

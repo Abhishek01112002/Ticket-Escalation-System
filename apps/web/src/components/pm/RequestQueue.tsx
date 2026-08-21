@@ -1,83 +1,185 @@
-import { useEffect, useState } from 'react'
-import type { Request } from '../../domain/ticket'
-import { SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
+/**
+ * RequestQueue — FAANG-grade operations queue with advanced multi-filter,
+ * role-specific default views, and high-density enterprise table.
+ *
+ * Filter capabilities:
+ *  - Status tabs: All / Needs Ack / In Progress / Escalated / Resolved
+ *  - Service Domain dropdown (8 domains)
+ *  - Urgency dropdown (Flexible / Soon / Time Sensitive)
+ *  - SLA Status: Healthy / Near Breach / Breached
+ *  - Date Range: Last 7d / 30d / 90d / All Time
+ *  - Full-text search: requirement + client + reference (client-side)
+ *  - "Assigned to Me" toggle for Specialists (first-class filter)
+ *  - Active filter count badge + "Clear All" chip
+ *  - Server-side filters (domain, urgency, slaStatus, dateFrom/dateTo, assigneeId)
+ *    are hoisted up to ProductionPMPortal which re-fetches via listPmRequests().
+ *  - Client-side filters (status tab, search) applied locally on fetched data.
+ */
+
+import { useEffect, useRef, useState } from 'react'
+import type { Request, RequestFilters, ServiceDomain } from '../../domain/ticket'
+import { DEFAULT_FILTERS, SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
 import { formatDateTime, formatRemaining, getSlaSummary } from '../../domain/sla'
 import { AttentionChip, EscalationDot, StatusBadge } from '../ui/badges'
 import { Avatar } from '../ui/layout'
 import { EmptyQueue } from '../ui/feedback'
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const URGENCY_LABELS: Record<string, string> = {
+  flexible:      'Flexible',
+  soon:          'Soon',
+  time_sensitive: 'Time Sensitive',
+}
+
+const SLA_STATUS_LABELS: Record<string, string> = {
+  healthy:     'Healthy',
+  near_breach: 'Near Breach (< 4h)',
+  breached:    'Breached',
+}
+
+const DATE_RANGES: { label: string; days: number | null }[] = [
+  { label: 'All Time',   days: null },
+  { label: 'Last 7d',   days: 7    },
+  { label: 'Last 30d',  days: 30   },
+  { label: 'Last 90d',  days: 90   },
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function cleanName(name: string): string {
   return name.replace(/^Demo\s+/i, '')
 }
 
+function dateRangeFromDays(days: number | null): { dateFrom: string | null; dateTo: string | null } {
+  if (!days) return { dateFrom: null, dateTo: null }
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return { dateFrom: from.toISOString(), dateTo: null }
+}
+
+function countActiveFilters(filters: RequestFilters): number {
+  return Object.values(filters).filter(v => v !== null && v !== undefined && v !== '').length
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function RequestQueue({
   requests,
+  currentUserId,
+  isPM,
+  activeFilters,
+  onFiltersChange,
   onOpen,
 }: {
   requests: Request[]
+  currentUserId: string
+  isPM: boolean
+  activeFilters: RequestFilters
+  onFiltersChange: (filters: RequestFilters) => void
   onOpen: (id: string) => void
 }) {
-  const [filter, setFilter] = useState<'all' | 'needs_ack' | 'escalated' | 'in_progress' | 'resolved'>('all')
-  const [pageSize, setPageSize] = useState<number>(7)
-  const [page, setPage] = useState<number>(1)
+  // ── Local UI state ─────────────────────────────────────────────────────────
+  type StatusTab = 'all' | 'needs_ack' | 'escalated' | 'in_progress' | 'resolved'
+  const [statusTab, setStatusTab] = useState<StatusTab>('all')
+  const [search, setSearch]       = useState('')
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [selectedDateRange, setSelectedDateRange] = useState<number | null>(null)
+  const [pageSize, setPageSize]   = useState<number>(7)
+  const [page, setPage]           = useState<number>(1)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const needsAck = requests.filter((r) => r.workflowStatus === 'awaiting_acknowledgement')
-  const escalated = requests.filter((r) => Boolean(r.escalation) && r.workflowStatus !== 'resolved')
-  const inProgress = requests.filter((r) => r.workflowStatus === 'in_progress')
-  const resolved = requests.filter((r) => r.workflowStatus === 'resolved')
+  // ── Keyboard shortcut: / to focus search ──────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const isInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
+      if (e.key === '/' && !isInput) {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
-  const filteredRequests = requests.filter((r) => {
-    if (filter === 'needs_ack') return r.workflowStatus === 'awaiting_acknowledgement'
-    if (filter === 'escalated') return Boolean(r.escalation) && r.workflowStatus !== 'resolved'
-    if (filter === 'in_progress') return r.workflowStatus === 'in_progress'
-    if (filter === 'resolved') return r.workflowStatus === 'resolved'
+  // ── Reset page on any filter change ───────────────────────────────────────
+  useEffect(() => { setPage(1) }, [statusTab, search, pageSize, activeFilters])
+
+  // ── Count buckets for status tabs ─────────────────────────────────────────
+  const needsAck  = requests.filter(r => r.workflowStatus === 'awaiting_acknowledgement')
+  const escalated = requests.filter(r => Boolean(r.escalation) && r.workflowStatus !== 'resolved')
+  const inProgress = requests.filter(r => r.workflowStatus === 'in_progress')
+  const resolved  = requests.filter(r => r.workflowStatus === 'resolved')
+
+  // ── Client-side filter: status tab + search ────────────────────────────────
+  const afterStatusFilter = requests.filter(r => {
+    if (statusTab === 'needs_ack')  return r.workflowStatus === 'awaiting_acknowledgement'
+    if (statusTab === 'escalated')  return Boolean(r.escalation) && r.workflowStatus !== 'resolved'
+    if (statusTab === 'in_progress') return r.workflowStatus === 'in_progress'
+    if (statusTab === 'resolved')   return r.workflowStatus === 'resolved'
     return true
   })
 
-  // Reset to page 1 when filter or page size changes
-  useEffect(() => {
+  const searchLower = search.toLowerCase().trim()
+  const filteredRequests = searchLower
+    ? afterStatusFilter.filter(r =>
+        r.id.toLowerCase().includes(searchLower) ||
+        r.subject.toLowerCase().includes(searchLower) ||
+        r.client.name.toLowerCase().includes(searchLower) ||
+        r.client.company.toLowerCase().includes(searchLower)
+      )
+    : afterStatusFilter
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  const totalItems   = filteredRequests.length
+  const totalPages   = Math.max(1, Math.ceil(totalItems / pageSize))
+  const currentPage  = Math.min(page, totalPages)
+  const startIndex   = (currentPage - 1) * pageSize
+  const endIndex     = Math.min(startIndex + pageSize, totalItems)
+  const paginated    = filteredRequests.slice(startIndex, endIndex)
+
+  // ── Server-side filter helpers ─────────────────────────────────────────────
+  const serverFilterCount = countActiveFilters(activeFilters)
+
+  const clearAllFilters = () => {
+    onFiltersChange({ ...DEFAULT_FILTERS, assigneeId: isPM ? null : 'me' })
+    setSelectedDateRange(null)
+    setSearch('')
+    setStatusTab('all')
     setPage(1)
-  }, [filter, pageSize])
+  }
 
-  const totalItems = filteredRequests.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = Math.min(startIndex + pageSize, totalItems)
-  const paginatedRequests = filteredRequests.slice(startIndex, endIndex)
+  const isAssignedToMe = activeFilters.assigneeId === 'me'
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-[1440px] w-full mx-auto px-6 sm:px-12 py-8 text-[#0b131b]">
-      {/* ── Compact Header & Attention Area ── */}
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#e2e8e5]">
         <div>
           <div className="flex items-center gap-3 mb-1.5">
             <h1 className="text-[22px] font-bold tracking-tight text-[#0b131b]">
-              Operations Queue
+              {isPM ? 'Operations Queue' : 'My Queue'}
             </h1>
             <span className="text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-[#ecfdf5] text-[#065f46] border border-[#d1fae5]">
               {requests.length - resolved.length} active · {requests.length} total
             </span>
           </div>
           <p className="text-[13.5px] text-[#5a6e7f]">
-            Manage client requests, SLA compliance windows, and specialist assignments.
+            {isPM
+              ? 'Manage client requests, SLA compliance windows, and specialist assignments.'
+              : 'Your assigned tickets and active work items.'}
           </p>
         </div>
 
-        {/* Compact Operational Attention Signals */}
+        {/* Operational Attention Signals */}
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-[10.5px] font-bold uppercase tracking-widest text-[#8da0b0] mr-1 hidden sm:inline">
-            Status:
-          </span>
-          {escalated.length > 0 ? (
-            <AttentionChip count={escalated.length} label="Escalated" color="rose" />
-          ) : null}
-          {needsAck.length > 0 ? (
-            <AttentionChip count={needsAck.length} label="Awaiting Ack" color="amber" />
-          ) : null}
-          {inProgress.length > 0 ? (
-            <AttentionChip count={inProgress.length} label="In Progress" color="blue" />
-          ) : null}
+          <span className="text-[10.5px] font-bold uppercase tracking-widest text-[#8da0b0] mr-1 hidden sm:inline">Status:</span>
+          {escalated.length > 0 && <AttentionChip count={escalated.length} label="Escalated" color="rose" />}
+          {needsAck.length > 0   && <AttentionChip count={needsAck.length}  label="Awaiting Ack" color="amber" />}
+          {inProgress.length > 0 && <AttentionChip count={inProgress.length} label="In Progress" color="blue" />}
           {escalated.length === 0 && needsAck.length === 0 && inProgress.length === 0 && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[#ecfdf5] border border-[#d1fae5] text-[#065f46]">
               <span className="w-2 h-2 rounded-full bg-[#059669]" />
@@ -87,22 +189,22 @@ export function RequestQueue({
         </div>
       </div>
 
-      {/* ── Segmented Navigation Filter ── */}
-      <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+      {/* ── Status Tabs + Page Size ──────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
         <div className="flex items-center gap-1.5 overflow-x-auto">
-          {[
-            { key: 'all', label: 'All Requests', count: requests.length },
-            { key: 'needs_ack', label: 'Awaiting Ack', count: needsAck.length },
-            { key: 'escalated', label: 'Escalated', count: escalated.length },
-            { key: 'in_progress', label: 'In Progress', count: inProgress.length },
-            { key: 'resolved', label: 'Resolved', count: resolved.length },
-          ].map((tab) => {
-            const active = filter === tab.key
+          {([
+            { key: 'all',        label: 'All Requests',  count: requests.length   },
+            { key: 'needs_ack',  label: 'Awaiting Ack',  count: needsAck.length   },
+            { key: 'escalated',  label: 'Escalated',     count: escalated.length  },
+            { key: 'in_progress',label: 'In Progress',   count: inProgress.length },
+            { key: 'resolved',   label: 'Resolved',      count: resolved.length   },
+          ] as { key: StatusTab; label: string; count: number }[]).map(tab => {
+            const active = statusTab === tab.key
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setFilter(tab.key as typeof filter)}
+                onClick={() => setStatusTab(tab.key)}
                 className={`px-3.5 py-2 text-[13px] font-medium rounded-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer select-none ${
                   active
                     ? 'bg-[#0b131b] text-white font-bold shadow-xs'
@@ -110,11 +212,7 @@ export function RequestQueue({
                 }`}
               >
                 <span>{tab.label}</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] ${
-                    active ? 'bg-[rgba(16,185,129,0.2)] text-[#10b981] font-bold' : 'bg-[#edf0ee] text-[#5a6e7f]'
-                  }`}
-                >
+                <span className={`px-2 py-0.5 rounded-full text-[11px] ${active ? 'bg-[rgba(16,185,129,0.2)] text-[#10b981] font-bold' : 'bg-[#edf0ee] text-[#5a6e7f]'}`}>
                   {tab.count}
                 </span>
               </button>
@@ -122,12 +220,11 @@ export function RequestQueue({
           })}
         </div>
 
-        {/* Rows per page selector */}
         <div className="flex items-center gap-2.5 text-[12.5px] text-[#5a6e7f]">
-          <span>Rows per page:</span>
+          <span>Rows:</span>
           <select
             value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
+            onChange={e => setPageSize(Number(e.target.value))}
             className="h-8 px-2.5 rounded-lg border border-[#cbd5d0] bg-white text-[12.5px] font-medium text-[#0b131b] focus:border-[#059669] outline-none cursor-pointer shadow-2xs"
           >
             <option value={7}>7</option>
@@ -137,7 +234,194 @@ export function RequestQueue({
         </div>
       </div>
 
-      {/* ── High-Density Enterprise Operations Table ── */}
+      {/* ── Advanced Filter Bar ──────────────────────────────────────────────── */}
+      <div className="mb-5 bg-white rounded-2xl border border-[#e2e8e5] shadow-xs overflow-hidden">
+        {/* Filter Topbar */}
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-[#f1f5f9] flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px]">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search requests, clients… (/)"
+              className="w-full h-8.5 pl-8 pr-3 rounded-lg border border-[#e2e8e5] bg-[#f8faf9] text-[13px] text-[#0b131b] placeholder-[#94a3b8] focus:border-[#059669] focus:bg-white outline-none transition-all"
+            />
+          </div>
+
+          {/* "Assigned to Me" toggle — always visible for Specialists; optional for PM */}
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...activeFilters, assigneeId: isAssignedToMe ? null : 'me' })}
+            className={`h-8.5 px-3.5 rounded-lg text-[12.5px] font-semibold border transition-all cursor-pointer select-none flex items-center gap-2 whitespace-nowrap ${
+              isAssignedToMe
+                ? 'bg-[#0f172a] text-white border-[#0f172a]'
+                : 'bg-white text-[#5a6e7f] border-[#e2e8e5] hover:border-[#94a3b8]'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isAssignedToMe ? 'bg-[#10b981]' : 'bg-[#cbd5d0]'}`} />
+            My Tickets
+          </button>
+
+          {/* Expand/Collapse advanced filters */}
+          <button
+            type="button"
+            onClick={() => setFiltersExpanded(v => !v)}
+            className={`h-8.5 px-3.5 rounded-lg text-[12.5px] font-semibold border transition-all cursor-pointer select-none flex items-center gap-2 whitespace-nowrap ${
+              serverFilterCount > 0
+                ? 'bg-[#ecfdf5] text-[#065f46] border-[#d1fae5]'
+                : 'bg-white text-[#5a6e7f] border-[#e2e8e5] hover:border-[#94a3b8]'
+            }`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            Filters
+            {serverFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-[#059669] text-white text-[10px] font-bold flex items-center justify-center">
+                {serverFilterCount}
+              </span>
+            )}
+            <span className="text-[10px] opacity-60">{filtersExpanded ? '▲' : '▼'}</span>
+          </button>
+
+          {/* Clear all button */}
+          {(serverFilterCount > 0 || search || statusTab !== 'all') && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="h-8.5 px-3.5 rounded-lg text-[12.5px] font-semibold text-[#e11d48] border border-[#ffe4e6] bg-[#fff1f2] hover:bg-[#ffe4e6] transition-colors cursor-pointer select-none whitespace-nowrap"
+            >
+              ✕ Clear All
+            </button>
+          )}
+        </div>
+
+        {/* Expanded Advanced Filters Row */}
+        {filtersExpanded && (
+          <div className="flex items-center gap-3 px-5 py-3.5 flex-wrap bg-[#fafbfa] border-b border-[#f1f5f9]">
+
+            {/* Service Domain */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Domain</label>
+              <select
+                value={activeFilters.domain ?? ''}
+                onChange={e => onFiltersChange({ ...activeFilters, domain: (e.target.value as ServiceDomain) || null })}
+                className="h-8.5 px-2.5 pr-7 rounded-lg border border-[#e2e8e5] bg-white text-[12.5px] font-medium text-[#0b131b] focus:border-[#059669] outline-none cursor-pointer shadow-2xs"
+              >
+                <option value="">All Domains</option>
+                {Object.entries(SERVICE_DOMAIN_LABELS).map(([slug, label]) => (
+                  <option key={slug} value={slug}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Urgency */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Urgency</label>
+              <select
+                value={activeFilters.urgency ?? ''}
+                onChange={e => onFiltersChange({ ...activeFilters, urgency: (e.target.value as any) || null })}
+                className="h-8.5 px-2.5 pr-7 rounded-lg border border-[#e2e8e5] bg-white text-[12.5px] font-medium text-[#0b131b] focus:border-[#059669] outline-none cursor-pointer shadow-2xs"
+              >
+                <option value="">All Urgencies</option>
+                {Object.entries(URGENCY_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* SLA Status */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">SLA Status</label>
+              <select
+                value={activeFilters.slaStatus ?? ''}
+                onChange={e => onFiltersChange({ ...activeFilters, slaStatus: e.target.value || null })}
+                className="h-8.5 px-2.5 pr-7 rounded-lg border border-[#e2e8e5] bg-white text-[12.5px] font-medium text-[#0b131b] focus:border-[#059669] outline-none cursor-pointer shadow-2xs"
+              >
+                <option value="">All SLA States</option>
+                {Object.entries(SLA_STATUS_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Range */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#64748b]">Date Range</label>
+              <div className="flex items-center gap-1">
+                {DATE_RANGES.map(({ label, days }) => {
+                  const active = selectedDateRange === days
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDateRange(days)
+                        const { dateFrom, dateTo } = dateRangeFromDays(days)
+                        onFiltersChange({ ...activeFilters, dateFrom, dateTo })
+                      }}
+                      className={`h-8.5 px-2.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer select-none whitespace-nowrap ${
+                        active
+                          ? 'bg-[#0b131b] text-white border-[#0b131b]'
+                          : 'bg-white text-[#5a6e7f] border-[#e2e8e5] hover:border-[#94a3b8] hover:text-[#0b131b]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active filter chips summary */}
+        {serverFilterCount > 0 && (
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-[#f8faf9] flex-wrap">
+            <span className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Active:</span>
+            {activeFilters.domain && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
+                🏢 {SERVICE_DOMAIN_LABELS[activeFilters.domain as ServiceDomain] ?? activeFilters.domain}
+                <button type="button" onClick={() => onFiltersChange({ ...activeFilters, domain: null })} className="text-[#0369a1] hover:text-[#0284c7] font-bold cursor-pointer">✕</button>
+              </span>
+            )}
+            {activeFilters.urgency && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#fef9c3] text-[#854d0e] border border-[#fde68a]">
+                ⚡ {URGENCY_LABELS[activeFilters.urgency] ?? activeFilters.urgency}
+                <button type="button" onClick={() => onFiltersChange({ ...activeFilters, urgency: null })} className="text-[#854d0e] hover:text-[#a16207] font-bold cursor-pointer">✕</button>
+              </span>
+            )}
+            {activeFilters.slaStatus && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#fff1f2] text-[#9f1239] border border-[#ffe4e6]">
+                🔴 {SLA_STATUS_LABELS[activeFilters.slaStatus] ?? activeFilters.slaStatus}
+                <button type="button" onClick={() => onFiltersChange({ ...activeFilters, slaStatus: null })} className="text-[#9f1239] hover:text-[#be123c] font-bold cursor-pointer">✕</button>
+              </span>
+            )}
+            {activeFilters.assigneeId === 'me' && isPM && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0]">
+                👤 My Tickets
+                <button type="button" onClick={() => onFiltersChange({ ...activeFilters, assigneeId: null })} className="text-[#166534] hover:text-[#15803d] font-bold cursor-pointer">✕</button>
+              </span>
+            )}
+            {selectedDateRange && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+                📅 Last {selectedDateRange}d
+                <button type="button" onClick={() => { setSelectedDateRange(null); onFiltersChange({ ...activeFilters, dateFrom: null, dateTo: null }) }} className="text-[#475569] hover:text-[#334155] font-bold cursor-pointer">✕</button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Results count when filtering ─────────────────────────────────────── */}
+      {(serverFilterCount > 0 || search || statusTab !== 'all') && filteredRequests.length !== requests.length && (
+        <p className="mb-4 text-[12.5px] text-[#64748b] font-medium">
+          Showing <strong className="text-[#0b131b]">{filteredRequests.length}</strong> matching request{filteredRequests.length !== 1 ? 's' : ''} of {requests.length} total
+        </p>
+      )}
+
+      {/* ── Table ─────────────────────────────────────────────────────────────── */}
       {filteredRequests.length === 0 ? (
         <EmptyQueue />
       ) : (
@@ -146,84 +430,83 @@ export function RequestQueue({
             <table className="w-full text-left border-collapse min-w-[960px]">
               <thead>
                 <tr className="bg-[#f8faf9] border-b border-[#e2e8e5] text-[11px] font-bold uppercase tracking-wider text-[#5a6e7f]">
-                  <th scope="col" className="px-6 py-3.5 w-[26%]">
-                    Request
-                  </th>
-                  <th scope="col" className="px-5 py-3.5 w-[18%]">
-                    Client Organization
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 w-[14%]">
-                    Service Area
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 w-[15%]">
-                    Specialist Owner
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 w-[13%]">
-                    Status
-                  </th>
-                  <th scope="col" className="px-5 py-3.5 w-[14%]">
-                    SLA Window
-                  </th>
+                  <th scope="col" className="px-6 py-3.5 w-[26%]">Request</th>
+                  <th scope="col" className="px-5 py-3.5 w-[18%]">Client Organization</th>
+                  <th scope="col" className="px-4 py-3.5 w-[14%]">Service Area</th>
+                  <th scope="col" className="px-4 py-3.5 w-[15%]">Specialist Owner</th>
+                  <th scope="col" className="px-4 py-3.5 w-[13%]">Status</th>
+                  <th scope="col" className="px-5 py-3.5 w-[14%]">SLA Window</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#edf1ef]">
-                {paginatedRequests.map((req) => (
+                {paginated.map(req => (
                   <RequestRow key={req.id} request={req} onOpen={onOpen} />
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* ── Enterprise Pagination Footer Toolbar ── */}
+          {/* ── Pagination Footer ────────────────────────────────────────────── */}
           <div className="px-6 py-4 bg-[#f8faf9] border-t border-[#e2e8e5] flex flex-col sm:flex-row items-center justify-between gap-3 text-[13px]">
             <span className="text-[#5a6e7f] text-[12.5px] font-medium">
               Showing <strong className="text-[#0b131b] font-bold">{startIndex + 1}–{endIndex}</strong> of <strong className="text-[#0b131b] font-bold">{totalItems}</strong> requests
             </span>
 
             <div className="flex items-center gap-1.5">
-              {/* Prev Page Button */}
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
                 className="h-8.5 px-3 rounded-lg border border-[#cbd5d0] bg-white text-[#2c3e50] font-medium hover:bg-[#f4f6f5] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 cursor-pointer select-none shadow-2xs"
                 aria-label="Previous page"
               >
-                <span>‹</span>
-                <span className="hidden sm:inline">Prev</span>
+                <span>‹</span><span className="hidden sm:inline">Prev</span>
               </button>
 
-              {/* Numeric Page Chips */}
               <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => {
-                  const isActive = pNum === currentPage
-                  return (
-                    <button
-                      key={pNum}
-                      type="button"
-                      onClick={() => setPage(pNum)}
-                      className={`w-8.5 h-8.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer select-none flex items-center justify-center ${
-                        isActive
-                          ? 'bg-[#0b131b] text-white shadow-xs'
-                          : 'bg-white border border-[#cbd5d0] text-[#5a6e7f] hover:bg-[#f4f6f5] hover:text-[#0b131b]'
-                      }`}
-                    >
-                      {pNum}
-                    </button>
+                {(() => {
+                  // Smart page chip rendering: show max 7 pages with ellipsis
+                  const chips: (number | '…')[] = []
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) chips.push(i)
+                  } else {
+                    chips.push(1)
+                    if (currentPage > 3) chips.push('…')
+                    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                      chips.push(i)
+                    }
+                    if (currentPage < totalPages - 2) chips.push('…')
+                    chips.push(totalPages)
+                  }
+                  return chips.map((chip, idx) =>
+                    chip === '…' ? (
+                      <span key={`ellipsis-${idx}`} className="w-8.5 text-center text-[12px] text-[#94a3b8]">…</span>
+                    ) : (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setPage(chip)}
+                        className={`w-8.5 h-8.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer select-none flex items-center justify-center ${
+                          chip === currentPage
+                            ? 'bg-[#0b131b] text-white shadow-xs'
+                            : 'bg-white border border-[#cbd5d0] text-[#5a6e7f] hover:bg-[#f4f6f5] hover:text-[#0b131b]'
+                        }`}
+                      >
+                        {chip}
+                      </button>
+                    )
                   )
-                })}
+                })()}
               </div>
 
-              {/* Next Page Button */}
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
                 className="h-8.5 px-3 rounded-lg border border-[#cbd5d0] bg-white text-[#2c3e50] font-medium hover:bg-[#f4f6f5] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 cursor-pointer select-none shadow-2xs"
                 aria-label="Next page"
               >
-                <span className="hidden sm:inline">Next</span>
-                <span>›</span>
+                <span className="hidden sm:inline">Next</span><span>›</span>
               </button>
             </div>
           </div>
@@ -233,37 +516,25 @@ export function RequestQueue({
   )
 }
 
-function RequestRow({
-  request,
-  onOpen,
-}: {
-  request: Request
-  onOpen: (id: string) => void
-}) {
+// ── RequestRow (unchanged design, same FAANG density) ─────────────────────────
+
+function RequestRow({ request, onOpen }: { request: Request; onOpen: (id: string) => void }) {
   const [hovered, setHovered] = useState(false)
   const sla = getSlaSummary(request)
   const isEscalated = Boolean(request.escalation) && request.workflowStatus !== 'resolved'
-  const isResolved = request.workflowStatus === 'resolved'
+  const isResolved  = request.workflowStatus === 'resolved'
 
   return (
     <tr
       role="button"
       tabIndex={0}
       onClick={() => onOpen(request.id)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen(request.id)
-        }
-      }}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(request.id) } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className="cursor-pointer transition-colors duration-100 focus-visible:bg-[#f4f6f5] select-none h-[64px]"
-      style={{
-        background: hovered ? '#f8faf9' : isEscalated ? '#fffbfb' : '#ffffff',
-      }}
+      style={{ background: hovered ? '#f8faf9' : isEscalated ? '#fffbfb' : '#ffffff' }}
     >
-      {/* 1. Request Column (Nvara Branded Reference Code + Truncated Subject) */}
       <td className="px-6 py-3.5">
         <div className="flex items-start gap-3">
           {isEscalated && <EscalationDot />}
@@ -277,27 +548,15 @@ function RequestRow({
           </div>
         </div>
       </td>
-
-      {/* 2. Client Column (Company + Name) */}
       <td className="px-5 py-3.5">
-        <span className="text-[13.5px] font-semibold text-[#0b131b] block truncate leading-tight">
-          {request.client.company}
-        </span>
-        {request.client.name && (
-          <span className="text-[12px] text-[#5a6e7f] block truncate mt-0.5">
-            {request.client.name}
-          </span>
-        )}
+        <span className="text-[13.5px] font-semibold text-[#0b131b] block truncate leading-tight">{request.client.company}</span>
+        {request.client.name && <span className="text-[12px] text-[#5a6e7f] block truncate mt-0.5">{request.client.name}</span>}
       </td>
-
-      {/* 3. Service Column */}
       <td className="px-4 py-3.5">
         <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#edf0ee] text-[#2c3e50] text-[12px] font-medium border border-[#e2e8e5]">
           {SERVICE_DOMAIN_LABELS[request.serviceDomain]}
         </span>
       </td>
-
-      {/* 4. Specialist Owner Column */}
       <td className="px-4 py-3.5">
         {request.assignment?.assignee ? (
           <div className="flex items-center gap-2">
@@ -310,13 +569,9 @@ function RequestRow({
           <span className="text-[12px] text-[#8da0b0] italic">Unassigned</span>
         )}
       </td>
-
-      {/* 5. Status Column */}
       <td className="px-4 py-3.5">
         <StatusBadge status={request.workflowStatus} size="sm" />
       </td>
-
-      {/* 6. SLA Column */}
       <td className="px-5 py-3.5">
         {isResolved ? (
           <span className="text-[12.5px] text-[#059669] font-semibold flex items-center gap-1.5">
@@ -330,15 +585,7 @@ function RequestRow({
           </span>
         ) : (
           <div className="flex flex-col">
-            <span
-              className={`text-[12.5px] font-bold ${
-                sla.state === 'warning'
-                  ? 'text-[#d97706]'
-                  : sla.state === 'breached'
-                  ? 'text-[#e11d48]'
-                  : 'text-[#0b131b]'
-              }`}
-            >
+            <span className={`text-[12.5px] font-bold ${sla.state === 'warning' ? 'text-[#d97706]' : sla.state === 'breached' ? 'text-[#e11d48]' : 'text-[#0b131b]'}`}>
               {formatRemaining(sla.remainingMs)}
             </span>
             <span className="text-[11px] text-[#8da0b0]">
@@ -350,3 +597,6 @@ function RequestRow({
     </tr>
   )
 }
+
+// ── Re-export SERVICE_DOMAIN_LABELS for RequestRow ────────────────────────────
+// (already imported at top)

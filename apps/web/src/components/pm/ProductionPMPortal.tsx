@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { Request, User } from '../../domain/ticket'
+import type { Request, RequestComment, RequestFilters, TeamMemberCapacity, User } from '../../domain/ticket'
+import { DEFAULT_FILTERS } from '../../domain/ticket'
 import {
   acknowledgeRequest,
   assignRequest,
   deleteRequest,
   listTeamMembers,
+  listRequestComments,
+  postRequestComment,
   resolveRequest,
   startWorkRequest,
 } from '../../services/pmWorkflowApi'
@@ -21,7 +24,7 @@ import { TeamManagement } from './TeamManagement'
 import { ProfileModal } from './ProfileModal'
 
 type DetailRequest = Request & { version: number }
-type Member = { id: string; name: string; email: string }
+type Member = TeamMemberCapacity
 
 function cleanName(name: string): string {
   return name.replace(/^Demo\s+/i, '')
@@ -46,13 +49,21 @@ export function ProductionPMPortal({
   onBack: () => void
   onSignOut?: () => void
 }) {
-  const [currentView, setCurrentView] = useState<'queue' | 'team'>('queue')
+  const isPM = user.role === 'project_manager'
+
+  const [currentView, setCurrentView]       = useState<'queue' | 'team'>('queue')
   const [profileModalOpen, setProfileModalOpen] = useState(false)
-  const [selected, setSelected] = useState<DetailRequest | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [members, setMembers] = useState<Member[]>([])
-  const [busy, setBusy] = useState(false)
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [selected, setSelected]             = useState<DetailRequest | null>(null)
+  const [detailLoading, setDetailLoading]   = useState(false)
+  const [members, setMembers]               = useState<Member[]>([])
+  const [busy, setBusy]                     = useState(false)
+  const [mobileNavOpen, setMobileNavOpen]   = useState(false)
+  const [comments, setComments]             = useState<RequestComment[]>([])
+  // Specialists default to "Assigned to Me"; PM defaults to no filter
+  const [activeFilters, setActiveFilters]   = useState<RequestFilters>({
+    ...DEFAULT_FILTERS,
+    assigneeId: isPM ? null : 'me',
+  })
   const { toast, showToast } = useToast()
 
   useEscapeKey(mobileNavOpen || Boolean(selected) || profileModalOpen, () => {
@@ -77,9 +88,14 @@ export function ProductionPMPortal({
 
   const openRequest = async (id: string) => {
     setDetailLoading(true)
+    setComments([])
     try {
-      const full = await onOpen(id)
+      const [full, initialComments] = await Promise.all([
+        onOpen(id),
+        listRequestComments(id).catch(() => [] as RequestComment[]),
+      ])
       setSelected(full as DetailRequest)
+      setComments(initialComments)
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Unable to open request.', 'error')
     } finally {
@@ -190,27 +206,29 @@ export function ProductionPMPortal({
               setMobileNavOpen(false)
             }}
           >
-            Operations Queue
+            {isPM ? 'Operations Queue' : 'My Queue'}
           </NavItem>
 
-          <NavItem
-            active={currentView === 'team'}
-            icon={
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            }
-            onClick={() => {
-              setCurrentView('team')
-              setSelected(null)
-              setMobileNavOpen(false)
-            }}
-          >
-            Team Members
-          </NavItem>
+          {isPM && (
+            <NavItem
+              active={currentView === 'team'}
+              icon={
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              }
+              onClick={() => {
+                setCurrentView('team')
+                setSelected(null)
+                setMobileNavOpen(false)
+              }}
+            >
+              Team Members
+            </NavItem>
+          )}
         </nav>
       </div>
 
@@ -396,7 +414,6 @@ export function ProductionPMPortal({
           </div>
         )}
 
-        {/* Content View Router */}
         <main className="flex-1 w-full">
           {currentView === 'team' ? (
             <TeamManagement currentUser={user} showToast={showToast} />
@@ -411,6 +428,7 @@ export function ProductionPMPortal({
               request={selected}
               user={user}
               members={members}
+              comments={comments}
               busy={busy}
               onBack={handleBack}
               onAssign={(assigneeUserId) =>
@@ -438,9 +456,20 @@ export function ProductionPMPortal({
                 )
               }
               onDelete={handleDelete}
+              onPostComment={async (reference, body) => {
+                const comment = await postRequestComment(reference, body)
+                return comment
+              }}
             />
           ) : (
-            <RequestQueue requests={requests} onOpen={openRequest} />
+            <RequestQueue
+              requests={requests}
+              currentUserId={user.id}
+              isPM={isPM}
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              onOpen={openRequest}
+            />
           )}
         </main>
       </div>
