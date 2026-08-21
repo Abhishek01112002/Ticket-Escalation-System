@@ -182,9 +182,9 @@ export function ProfileModal({
                 </span>
               </div>
               <div className="p-3.5 bg-surface-elevated border border-border rounded-xl">
-                <span className="text-[11px] text-text-muted block">System Role</span>
-                <span className="text-xs font-semibold text-brand mt-0.5 block capitalize">
-                  {user.role.replace('_', ' ')}
+                <span className="text-[11px] text-[#64748b] block">System Role</span>
+                <span className="text-xs font-semibold text-[#059669] mt-0.5 block capitalize">
+                  {String(user.role || 'team_member').replace('_', ' ')}
                 </span>
               </div>
             </div>

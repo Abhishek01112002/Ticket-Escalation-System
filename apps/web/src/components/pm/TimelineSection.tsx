@@ -2,16 +2,16 @@ import type { TimelineEvent } from '../../domain/ticket'
 import { formatHumanDateTime } from '../../domain/sla'
 import { Section } from '../ui/layout'
 
-function cleanName(name: string): string {
+function cleanName(name?: string): string {
   if (!name) return 'System'
-  const cleaned = name.replace(/^Demo\s+/i, '').trim()
+  const cleaned = String(name).replace(/^Demo\s+/i, '').trim()
   if (cleaned.toLowerCase() === 'internal team member') return 'Specialist'
   return cleaned || 'System'
 }
 
 function getHumanEventCopy(event: TimelineEvent): { title: string; description: string } {
   const actor = cleanName(event.actor)
-  const isArrowTransition = event.detail.includes('→')
+  const isArrowTransition = (event.detail || '').includes('→')
 
   switch (event.type) {
     case 'resolved':
@@ -19,61 +19,61 @@ function getHumanEventCopy(event: TimelineEvent): { title: string; description: 
         title: 'Resolved',
         description: isArrowTransition
           ? `${actor} marked this request as completed and fulfilled.`
-          : event.detail,
+          : event.detail || 'Request resolved.',
       }
     case 'work_started':
       return {
         title: 'Work Started',
         description: isArrowTransition
           ? `${actor} started active execution on this requirement.`
-          : event.detail,
+          : event.detail || 'Work started.',
       }
     case 'acknowledged':
       return {
         title: 'Acknowledged',
         description: isArrowTransition
           ? `${actor} acknowledged receipt within the 24-hour SLA window.`
-          : event.detail,
+          : event.detail || 'Request acknowledged.',
       }
     case 'reassigned':
       return {
         title: 'Reassigned',
         description: isArrowTransition
           ? `Request was reassigned to ${actor}.`
-          : event.detail,
+          : event.detail || 'Request reassigned.',
       }
     case 'assigned':
       return {
         title: 'Specialist Assigned',
         description: isArrowTransition
           ? `Assigned to ${actor} with a 24-hour acknowledgement window.`
-          : event.detail,
+          : event.detail || 'Specialist assigned.',
       }
     case 'request_created':
       return {
         title: 'Request Received',
         description: isArrowTransition
           ? 'Client requirement submitted and recorded in operations queue.'
-          : event.detail,
+          : event.detail || 'Request created.',
       }
     case 'sla_breached':
       return {
         title: 'SLA Breached',
         description: isArrowTransition
           ? 'The 24-hour acknowledgement window elapsed without confirmation.'
-          : event.detail,
+          : event.detail || 'SLA breached.',
       }
     case 'escalation_triggered':
       return {
         title: 'Escalation Triggered',
         description: isArrowTransition
           ? 'Acknowledgement SLA was breached and an escalation was recorded.'
-          : event.detail,
+          : event.detail || 'Escalation triggered.',
       }
     default:
       return {
-        title: event.title.replace(/_/g, ' '),
-        description: isArrowTransition ? 'Request status updated.' : event.detail,
+        title: String(event.title || event.type || 'Activity').replace(/_/g, ' '),
+        description: isArrowTransition ? 'Request status updated.' : event.detail || 'Activity recorded.',
       }
   }
 }

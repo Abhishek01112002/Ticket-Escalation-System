@@ -26,8 +26,9 @@ import { ProfileModal } from './ProfileModal'
 type DetailRequest = Request & { version: number }
 type Member = TeamMemberCapacity
 
-function cleanName(name: string): string {
-  return name.replace(/^Demo\s+/i, '')
+function cleanName(name?: string): string {
+  if (!name) return ''
+  return String(name).replace(/^Demo\s+/i, '')
 }
 
 export function ProductionPMPortal({

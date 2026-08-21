@@ -14,9 +14,9 @@ import { CommentsThread } from './CommentsThread'
 type DetailRequest = Request & { version: number }
 type Member = TeamMemberCapacity
 
-function cleanName(name: string): string {
+function cleanName(name?: string): string {
   if (!name) return 'Specialist'
-  const cleaned = name.replace(/^Demo\s+/i, '').trim()
+  const cleaned = String(name).replace(/^Demo\s+/i, '').trim()
   if (cleaned.toLowerCase() === 'internal team member') return 'Specialist'
   return cleaned || 'Specialist'
 }
@@ -74,6 +74,7 @@ export function RequestDetail({
   onDelete?: (id: string) => void
   onPostComment: (reference: string, body: string) => Promise<RequestComment>
 }) {
+  const [copied, setCopied] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const sla = getSlaSummary(request)
   const isPM = user.role === 'project_manager'
@@ -83,11 +84,16 @@ export function RequestDetail({
   const canStartWork = request.workflowStatus === 'acknowledged'
   const canResolve = request.workflowStatus === 'in_progress'
 
+  const copyReference = () => {
+    navigator.clipboard.writeText(request.id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const { headline, fullScope } = getSubjectAndDescription(request.subject, request.description)
 
   return (
     <div className="max-w-[1440px] w-full mx-auto px-6 sm:px-12 py-8 text-[#0f172a] animate-fade-in">
-      {/* ── Mobile Dedicated Back Navigation (Desktop uses topbar breadcrumb) ── */}
       <button
         onClick={onBack}
         className="lg:hidden inline-flex items-center gap-2 min-h-[44px] px-2 text-[13.5px] font-medium text-[#64748b] hover:text-[#0f172a] mb-4 transition-colors cursor-pointer select-none"
@@ -97,17 +103,18 @@ export function RequestDetail({
         <span>Operations Queue</span>
       </button>
 
-      {/* ── 2-Column Cohesive Workspace Layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
-        {/* ── Left Column: Unified Main Workspace Canvas ── */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] p-7 sm:p-9 shadow-xs space-y-8">
-          {/* 1. Request Identity & Header Region */}
           <div className="pb-7 border-b border-[#f1f5f9]">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className="font-mono text-[12px] font-bold text-[#64748b] bg-[#f1f5f9] px-2.5 py-1 rounded-md border border-[#e2e8f0]">
-                  {request.id}
-                </span>
+                <button
+                  type="button"
+                  onClick={copyReference}
+                  className="font-mono text-[12px] font-bold text-[#64748b] bg-[#f1f5f9] px-2.5 py-1 rounded-md border border-[#e2e8f0] hover:bg-[#e2e8f0] transition-colors"
+                >
+                  {copied ? '✓ Copied' : request.id}
+                </button>
                 <UrgencyBadge urgency={request.clientUrgency} />
                 {request.escalation && <EscalationBadge />}
               </div>
@@ -128,13 +135,11 @@ export function RequestDetail({
               {request.createdAt && <span>· Received {formatHumanDateTime(request.createdAt)}</span>}
             </p>
 
-            {/* Quiet Workflow Progress Stepper */}
             <div className="pt-2">
               <WorkflowStepper status={request.workflowStatus} />
             </div>
           </div>
 
-          {/* 2. Requirement Details */}
           <Section title="Requirement Details" label="Client requirement details">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-6 pb-6 border-b border-[#f1f5f9]">
               <MetaField label="Service Area">
@@ -144,7 +149,7 @@ export function RequestDetail({
               </MetaField>
               <MetaField label="Timeline Urgency">
                 <span className="capitalize font-medium text-[#0f172a] text-[13.5px]">
-                  {request.clientUrgency.replace('_', ' ')}
+                  {String(request.clientUrgency || 'flexible').replace('_', ' ')}
                 </span>
               </MetaField>
               <MetaField label="Work Email">

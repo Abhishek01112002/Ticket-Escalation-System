@@ -5,9 +5,9 @@ import { PrimaryBtn } from '../ui/buttons'
 type DetailRequest = Request & { version: number }
 type Member = TeamMemberCapacity
 
-function cleanName(name: string): string {
+function cleanName(name?: string): string {
   if (!name) return 'Specialist'
-  const cleaned = name.replace(/^Demo\s+/i, '').trim()
+  const cleaned = String(name).replace(/^Demo\s+/i, '').trim()
   if (cleaned.toLowerCase() === 'internal team member') return 'Specialist'
   return cleaned || 'Specialist'
 }

@@ -2,8 +2,9 @@ import type { Escalation } from '../../domain/ticket'
 import { formatHumanDateTime } from '../../domain/sla'
 import { Avatar, Section } from '../ui/layout'
 
-function cleanName(name: string): string {
-  return name.replace(/^Demo\s+/i, '')
+function cleanName(name?: string): string {
+  if (!name) return 'Specialist'
+  return String(name).replace(/^Demo\s+/i, '')
 }
 
 export function EscalationSection({

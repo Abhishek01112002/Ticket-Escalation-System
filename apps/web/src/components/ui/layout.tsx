@@ -54,7 +54,7 @@ export function Avatar({
 }) {
   const initials =
     user.initials ||
-    user.name
+    String(user.name || 'Specialist')
       .replace(/^Demo\s+/i, '')
       .split(' ')
       .map((n) => n[0])

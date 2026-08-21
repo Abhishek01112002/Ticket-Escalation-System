@@ -95,7 +95,7 @@ export const AuditLogView: React.FC = () => {
                       log.eventType
                     )}`}
                   >
-                    {log.eventType.replace(/_/g, ' ')}
+                    {String(log.eventType || 'EVENT').replace(/_/g, ' ')}
                   </span>
                 </div>
                 <div className="text-[#475569] text-[11px] font-mono bg-[#f8fafc] px-2.5 py-1.5 rounded border border-[#e2e8f0]">

@@ -41,8 +41,9 @@ type Summary = {
   }
 }
 
-function user(name: string, email?: string, id?: string): User {
-  const initials = name
+function user(name?: string, email?: string, id?: string): User {
+  const safeName = String(name || email || 'Specialist')
+  const initials = safeName
     .replace(/^Demo\s+/i, '')
     .split(' ')
     .map((p) => p[0])
@@ -50,9 +51,9 @@ function user(name: string, email?: string, id?: string): User {
     .slice(0, 2)
     .toUpperCase()
   return {
-    id: id ?? email ?? name,
-    name: name.replace(/^Demo\s+/i, ''),
-    initials,
+    id: id ?? email ?? safeName,
+    name: safeName.replace(/^Demo\s+/i, ''),
+    initials: initials || 'SP',
     role: 'team_member',
     team: 'Specialist team',
   }
@@ -69,8 +70,8 @@ function map(row: Summary): Request {
     internalPriority: 'medium',
     client: {
       id: row.reference,
-      name: row.client.name,
-      company: row.client.company,
+      name: row.client?.name || 'Client',
+      company: row.client?.company || '',
       email: '',
       phone: '',
     },
@@ -79,27 +80,27 @@ function map(row: Summary): Request {
     assignment: (row.currentResponsibility
       ? {
           assignedBy: 'Project Manager',
-          acknowledgementDeadline: row.sla.deadlineAt,
+          acknowledgementDeadline: row.sla?.deadlineAt,
           assignee: user(
             row.currentResponsibility.name,
             row.currentResponsibility.email,
             row.currentResponsibility.id,
           ),
           assignedAt: row.currentResponsibility.assignedAt,
-          acknowledgedAt: row.sla.acknowledgedAt ?? undefined,
+          acknowledgedAt: row.sla?.acknowledgedAt ?? undefined,
         }
       : {
           assignedBy: 'System',
-          acknowledgementDeadline: row.sla.deadlineAt,
+          acknowledgementDeadline: row.sla?.deadlineAt,
           assignee: null as any,
           assignedAt: '',
           acknowledgedAt: undefined,
         }) as any,
     sla: {
-      deadlineAt: row.sla.deadlineAt,
-      status: row.sla.status,
-      acknowledgedAt: row.sla.acknowledgedAt ?? undefined,
-      breachedAt: row.sla.breachedAt ?? undefined,
+      deadlineAt: row.sla?.deadlineAt,
+      status: row.sla?.status || 'active',
+      acknowledgedAt: row.sla?.acknowledgedAt ?? undefined,
+      breachedAt: row.sla?.breachedAt ?? undefined,
     },
     timeline: [],
   }
@@ -116,16 +117,17 @@ export async function getPmMe() {
         organizationName: string
       }
     }>('/v1/auth/me')
+    const displayName = String(data.user?.displayName || data.user?.email || 'Project Manager')
     return {
       id: data.user.id,
-      name: data.user.displayName.replace(/^Demo\s+/i, ''),
-      initials: data.user.displayName
+      name: displayName.replace(/^Demo\s+/i, ''),
+      initials: displayName
         .replace(/^Demo\s+/i, '')
         .split(' ')
         .map((p) => p[0])
         .join('')
         .slice(0, 2)
-        .toUpperCase(),
+        .toUpperCase() || 'PM',
       role: (data.user.role === 'project_manager'
         ? 'project_manager'
         : 'team_member') as User['role'],

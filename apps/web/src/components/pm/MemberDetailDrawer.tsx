@@ -264,7 +264,7 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
                               : 'bg-[#fffbeb] text-[#92400e] border border-[#fef3c7]'
                           }`}
                         >
-                          {ticket.status.replace('_', ' ')}
+                          {String(ticket.status || 'received').replace('_', ' ')}
                         </span>
                       </div>
                       <p className="text-[12px] text-[#334155] mt-1 line-clamp-1 font-medium">{ticket.requirement}</p>

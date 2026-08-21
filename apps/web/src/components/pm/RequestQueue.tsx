@@ -47,8 +47,9 @@ const DATE_RANGES: { label: string; days: number | null }[] = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function cleanName(name: string): string {
-  return name.replace(/^Demo\s+/i, '')
+function cleanName(name?: string): string {
+  if (!name) return ''
+  return String(name).replace(/^Demo\s+/i, '')
 }
 
 function dateRangeFromDays(days: number | null): { dateFrom: string | null; dateTo: string | null } {
