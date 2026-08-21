@@ -22,6 +22,7 @@ import { RequestQueue } from './RequestQueue'
 import { RequestDetail } from './RequestDetail'
 import { TeamManagement } from './TeamManagement'
 import { ProfileModal } from './ProfileModal'
+import { WhatsAppDispatchDrawer, type WhatsAppDispatchPayload } from './WhatsAppDispatchDrawer'
 
 type DetailRequest = Request & { version: number }
 type Member = TeamMemberCapacity
@@ -60,6 +61,7 @@ export function ProductionPMPortal({
   const [busy, setBusy]                     = useState(false)
   const [mobileNavOpen, setMobileNavOpen]   = useState(false)
   const [comments, setComments]             = useState<RequestComment[]>([])
+  const [whatsappDispatchPayload, setWhatsappDispatchPayload] = useState<WhatsAppDispatchPayload | null>(null)
   // Specialists default to "Assigned to Me"; PM defaults to no filter
   const [activeFilters, setActiveFilters]   = useState<RequestFilters>({
     ...DEFAULT_FILTERS,
@@ -67,8 +69,9 @@ export function ProductionPMPortal({
   })
   const { toast, showToast } = useToast()
 
-  useEscapeKey(mobileNavOpen || Boolean(selected) || profileModalOpen, () => {
-    if (profileModalOpen) setProfileModalOpen(false)
+  useEscapeKey(mobileNavOpen || Boolean(selected) || profileModalOpen || Boolean(whatsappDispatchPayload), () => {
+    if (whatsappDispatchPayload) setWhatsappDispatchPayload(null)
+    else if (profileModalOpen) setProfileModalOpen(false)
     else if (mobileNavOpen) setMobileNavOpen(false)
     else if (selected) setSelected(null)
   })
@@ -89,14 +92,11 @@ export function ProductionPMPortal({
 
   const openRequest = async (id: string) => {
     setDetailLoading(true)
-    setComments([])
     try {
-      const [full, initialComments] = await Promise.all([
-        onOpen(id),
-        listRequestComments(id).catch(() => [] as RequestComment[]),
-      ])
-      setSelected(full as DetailRequest)
-      setComments(initialComments)
+      const data = await onOpen(id)
+      setSelected(data as DetailRequest)
+      const ticketComments = await listRequestComments(id)
+      setComments(ticketComments)
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Unable to open request.', 'error')
     } finally {
@@ -146,6 +146,32 @@ export function ProductionPMPortal({
     try {
       await assignRequest(reference, assigneeUserId, expectedVersion)
       showToast('Specialist assigned successfully.', 'success')
+      const assignedMember = members.find((m) => m.id === assigneeUserId)
+      const targetReq = requests.find((r) => r.id === reference)
+      if (assignedMember && targetReq) {
+        setWhatsappDispatchPayload({
+          request: {
+            ...targetReq,
+            assignment: {
+              ...targetReq.assignment,
+              assignee: {
+                id: assignedMember.id,
+                name: assignedMember.name,
+                initials: assignedMember.name.slice(0, 2),
+                role: 'team_member',
+                team: 'Specialist team',
+                phoneWhatsapp: assignedMember.phoneWhatsapp,
+              },
+            },
+          },
+          specialist: {
+            id: assignedMember.id,
+            name: assignedMember.name,
+            email: assignedMember.email,
+            phoneWhatsapp: assignedMember.phoneWhatsapp,
+          },
+        })
+      }
       retry()
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to assign specialist.', 'error')
@@ -448,7 +474,22 @@ export function ProductionPMPortal({
               onBack={handleBack}
               onAssign={(assigneeUserId) =>
                 run(
-                  () => assignRequest(selected.id, assigneeUserId, selected.version),
+                  async () => {
+                    const updated = await assignRequest(selected.id, assigneeUserId, selected.version)
+                    const assignedMember = members.find((m) => m.id === assigneeUserId)
+                    if (assignedMember) {
+                      setWhatsappDispatchPayload({
+                        request: updated,
+                        specialist: {
+                          id: assignedMember.id,
+                          name: assignedMember.name,
+                          email: assignedMember.email,
+                          phoneWhatsapp: assignedMember.phoneWhatsapp,
+                        },
+                      })
+                    }
+                    return updated
+                  },
                   'Assignment saved. 24-hour acknowledgement window started.',
                 )
               }
@@ -475,6 +516,20 @@ export function ProductionPMPortal({
                 const comment = await postRequestComment(reference, body)
                 return comment
               }}
+              onOpenWhatsAppBriefing={() => {
+                if (selected.assignment?.assignee) {
+                  const member = members.find((m) => m.id === selected.assignment.assignee.id)
+                  setWhatsappDispatchPayload({
+                    request: selected,
+                    specialist: {
+                      id: selected.assignment.assignee.id,
+                      name: selected.assignment.assignee.name,
+                      email: member?.email,
+                      phoneWhatsapp: member?.phoneWhatsapp || selected.assignment.assignee.phoneWhatsapp,
+                    },
+                  })
+                }
+              }}
             />
           ) : (
             <RequestQueue
@@ -494,6 +549,14 @@ export function ProductionPMPortal({
       {/* Profile & Change Password Modal */}
       {profileModalOpen && (
         <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />
+      )}
+
+      {/* Smart Zero-Cost WhatsApp Dispatch Drawer */}
+      {whatsappDispatchPayload && (
+        <WhatsAppDispatchDrawer
+          payload={whatsappDispatchPayload}
+          onClose={() => setWhatsappDispatchPayload(null)}
+        />
       )}
     </div>
   )

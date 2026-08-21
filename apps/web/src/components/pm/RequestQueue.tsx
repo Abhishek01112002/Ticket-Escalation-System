@@ -775,23 +775,23 @@ function RequestRow({
         {isPM && teamMembers && teamMembers.length > 0 && request.workflowStatus !== 'resolved' ? (
           <div className="relative inline-block">
             {request.assignment?.assignee ? (
-              <button
-                type="button"
-                onClick={e => {
-                  e.stopPropagation()
-                  setShowAssignPopover(!showAssignPopover)
-                }}
-                className="flex items-center gap-2 group px-2 py-1 -mx-2 -my-1 rounded-lg hover:bg-[#f1f5f9] transition-colors cursor-pointer"
-                title="Click to reassign specialist"
-              >
+              <div className="flex items-center gap-2 group">
                 <Avatar user={{ name: cleanName(request.assignment.assignee.name) }} size="xs" />
-                <span className="text-[13px] font-medium text-[#0b131b] group-hover:text-[#059669] truncate max-w-[120px]">
+                <span className="text-[13px] font-medium text-[#0b131b] truncate max-w-[110px]">
                   {cleanName(request.assignment.assignee.name)}
                 </span>
-                <span className="text-[11px] text-[#94a3b8] opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation()
+                    setShowAssignPopover(!showAssignPopover)
+                  }}
+                  className="text-[11px] font-bold text-[#64748b] hover:text-[#059669] hover:bg-[#f1f5f9] px-1 py-0.5 rounded border border-transparent hover:border-[#cbd5e1] transition-all cursor-pointer"
+                  title="Reassign specialist"
+                >
                   ⇄
-                </span>
-              </button>
+                </button>
+              </div>
             ) : (
               <button
                 type="button"

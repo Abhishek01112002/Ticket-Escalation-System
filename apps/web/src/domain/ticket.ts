@@ -53,6 +53,7 @@ export interface User {
   initials: string
   role: Role
   team: string
+  phoneWhatsapp?: string | null
 }
 
 export interface Client {
@@ -163,6 +164,7 @@ export interface TeamMemberCapacity {
   id: string
   name: string
   email: string
+  phoneWhatsapp?: string | null
   /** Number of currently active (non-ended) ticket assignments. */
   activeAssignmentsCount: number
 }

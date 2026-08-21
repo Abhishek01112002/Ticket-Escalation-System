@@ -90,7 +90,7 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
                   {member.displayName}
                 </h2>
                 <p className="text-[12px] text-[#64748b] font-mono mt-0.5">{member.email}</p>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
                       member.role === 'project_manager'
@@ -114,6 +114,11 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
                     />
                     {member.isActive ? 'Active' : 'Deactivated'}
                   </span>
+                  {member.phoneWhatsapp && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-[#ecfdf5] text-[#065f46] border border-[#d1fae5]" title="Registered WhatsApp Phone">
+                      <span>💬</span> {member.phoneWhatsapp}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

@@ -60,6 +60,7 @@ export function RequestDetail({
   onResolve,
   onDelete,
   onPostComment,
+  onOpenWhatsAppBriefing,
 }: {
   request: DetailRequest
   user: User
@@ -73,6 +74,7 @@ export function RequestDetail({
   onResolve: () => void
   onDelete?: (id: string) => void
   onPostComment: (reference: string, body: string) => Promise<RequestComment>
+  onOpenWhatsAppBriefing?: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -214,7 +216,7 @@ export function RequestDetail({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3.5">
                   <Avatar user={{ name: cleanName(request.assignment.assignee.name) }} size="md" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[14px] font-bold text-[#0f172a] truncate">
                       {cleanName(request.assignment.assignee.name)}
                     </p>
@@ -223,6 +225,19 @@ export function RequestDetail({
                     </p>
                   </div>
                 </div>
+
+                {/* WhatsApp Quick Dispatch Action Button */}
+                {isPM && onOpenWhatsAppBriefing && (
+                  <button
+                    type="button"
+                    onClick={onOpenWhatsAppBriefing}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#065f46] border border-[#a7f3d0] text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                    title="Generate and dispatch pre-filled task briefing on WhatsApp"
+                  >
+                    <span>💬</span>
+                    <span>WhatsApp Task Briefing</span>
+                  </button>
+                )}
 
                 {request.assignment.assignedAt && (
                   <p className="text-[12px] text-[#64748b] pt-2 border-t border-[#f1f5f9]">

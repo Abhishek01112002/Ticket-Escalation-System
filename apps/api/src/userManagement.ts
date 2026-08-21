@@ -12,6 +12,7 @@ export interface OrganizationUser {
   id: string
   displayName: string
   email: string
+  phoneWhatsapp?: string | null
   role: 'project_manager' | 'internal_team_member'
   isActive: boolean
   createdAt: string
@@ -24,6 +25,7 @@ export interface OrganizationUser {
 const inviteUserSchema = z.object({
   displayName: z.string().trim().min(2, 'Display name must be at least 2 characters.'),
   email: z.string().trim().email('A valid email address is required.'),
+  phoneWhatsapp: z.string().trim().optional().nullable(),
   role: z.enum(['project_manager', 'internal_team_member']),
   mode: z.enum(['invite_link', 'instant_password']).default('invite_link'),
   initialPassword: z
@@ -37,6 +39,7 @@ const inviteUserSchema = z.object({
 
 const updateUserSchema = z.object({
   displayName: z.string().trim().min(2).optional(),
+  phoneWhatsapp: z.string().trim().optional().nullable(),
   role: z.enum(['project_manager', 'internal_team_member']).optional(),
   isActive: z.boolean().optional(),
   reassignToUserId: z.string().uuid().nullable().optional(),
@@ -55,6 +58,7 @@ export function registerUserManagementRoutes(
       id: string
       display_name: string
       email: string
+      phone_whatsapp: string | null
       role: 'project_manager' | 'internal_team_member'
       is_active: boolean
       created_at: Date
@@ -68,6 +72,7 @@ export function registerUserManagementRoutes(
         u.id,
         u.display_name,
         u.email,
+        u.phone_whatsapp,
         r.code AS role,
         u.is_active,
         u.created_at,
@@ -122,6 +127,7 @@ export function registerUserManagementRoutes(
         id: row.id,
         displayName: row.display_name,
         email: row.email,
+        phoneWhatsapp: row.phone_whatsapp || null,
         role: row.role,
         isActive: row.is_active,
         createdAt: row.created_at.toISOString(),
@@ -144,11 +150,12 @@ export function registerUserManagementRoutes(
       id: string
       display_name: string
       email: string
+      phone_whatsapp: string | null
       role: 'project_manager' | 'internal_team_member'
       is_active: boolean
       created_at: Date
     }>(
-      `SELECT u.id, u.display_name, u.email, r.code AS role, u.is_active, u.created_at
+      `SELECT u.id, u.display_name, u.email, u.phone_whatsapp, r.code AS role, u.is_active, u.created_at
        FROM users u
        JOIN user_roles ur ON ur.user_id = u.id
        JOIN roles r ON r.id = ur.role_id
@@ -214,6 +221,7 @@ export function registerUserManagementRoutes(
         id: member.id,
         displayName: member.display_name,
         email: member.email,
+        phoneWhatsapp: member.phone_whatsapp || null,
         role: member.role,
         isActive: member.is_active,
         createdAt: member.created_at.toISOString(),
@@ -236,7 +244,7 @@ export function registerUserManagementRoutes(
       throw new ApiError(400, 'INVALID_INPUT', firstError)
     }
 
-    const { displayName, email, role, mode, initialPassword } = parseResult.data
+    const { displayName, email, role, mode, initialPassword, phoneWhatsapp } = parseResult.data
     const normalizedEmail = email.toLowerCase()
 
     // Check email uniqueness within organization
@@ -297,7 +305,7 @@ export function registerUserManagementRoutes(
         [
           actor.organizationId,
           actor.id,
-          JSON.stringify({ email: normalizedEmail, role, mode: 'invite_link' }),
+          JSON.stringify({ email: normalizedEmail, role, mode: 'invite_link', phoneWhatsapp: phoneWhatsapp || null }),
         ]
       )
 
@@ -321,10 +329,10 @@ export function registerUserManagementRoutes(
 
       const userRes = await client.query<{ id: string; created_at: Date }>(
         `INSERT INTO users (
-          organization_id, display_name, email, auth_subject, password_hash, is_active, is_demo
-        ) VALUES ($1, $2, $3, $4, $5, true, false)
+          organization_id, display_name, email, auth_subject, password_hash, phone_whatsapp, is_active, is_demo
+        ) VALUES ($1, $2, $3, $4, $5, $6, true, false)
         RETURNING id, created_at`,
-        [actor.organizationId, displayName, normalizedEmail, authSubject, passwordHash]
+        [actor.organizationId, displayName, normalizedEmail, authSubject, passwordHash, phoneWhatsapp || null]
       )
 
       const newUser = userRes.rows[0]
@@ -338,7 +346,7 @@ export function registerUserManagementRoutes(
         [
           actor.organizationId,
           actor.id,
-          JSON.stringify({ targetUserId: newUser.id, email: normalizedEmail, role, mode: 'instant_password' }),
+          JSON.stringify({ targetUserId: newUser.id, email: normalizedEmail, role, mode: 'instant_password', phoneWhatsapp: phoneWhatsapp || null }),
         ]
       )
 
@@ -350,6 +358,7 @@ export function registerUserManagementRoutes(
           id: newUser.id,
           displayName,
           email: normalizedEmail,
+          phoneWhatsapp: phoneWhatsapp || null,
           role,
           isActive: true,
           createdAt: newUser.created_at.toISOString(),
@@ -451,7 +460,7 @@ export function registerUserManagementRoutes(
       throw new ApiError(400, 'INVALID_INPUT', firstError)
     }
 
-    const { displayName, role, isActive, reassignToUserId } = parseResult.data
+    const { displayName, role, isActive, reassignToUserId, phoneWhatsapp } = parseResult.data
 
     // Lookup target user
     const targetRes = await pool.query<{
@@ -511,15 +520,16 @@ export function registerUserManagementRoutes(
       await client.query('BEGIN')
 
       // Update basic fields
-      if (displayName !== undefined || isActive !== undefined) {
+      if (displayName !== undefined || isActive !== undefined || phoneWhatsapp !== undefined) {
         await client.query(
           `UPDATE users
            SET
              display_name = COALESCE($1, display_name),
              is_active = COALESCE($2, is_active),
+             phone_whatsapp = COALESCE($3, phone_whatsapp),
              updated_at = now()
-           WHERE id = $3 AND organization_id = $4`,
-          [displayName ?? null, isActive ?? null, targetUserId, actor.organizationId]
+           WHERE id = $4 AND organization_id = $5`,
+          [displayName ?? null, isActive ?? null, phoneWhatsapp ?? null, targetUserId, actor.organizationId]
         )
       }
 

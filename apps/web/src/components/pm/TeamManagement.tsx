@@ -42,6 +42,7 @@ export function TeamManagement({
   const [inviteForm, setInviteForm] = useState<InviteUserInput>({
     displayName: '',
     email: '',
+    phoneWhatsapp: '',
     role: 'internal_team_member',
     mode: 'invite_link',
     initialPassword: '',
@@ -88,6 +89,7 @@ export function TeamManagement({
         setInviteForm({
           displayName: '',
           email: '',
+          phoneWhatsapp: '',
           role: 'internal_team_member',
           mode: 'invite_link',
           initialPassword: '',
@@ -713,6 +715,23 @@ export function TeamManagement({
                   }}
                   placeholder="alex.rivera@nvaramedia.com"
                   className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="invite-phone" className="block text-xs font-semibold text-[#334155] mb-1">
+                  WhatsApp Phone Number <span className="text-[#64748b] font-normal">(for task briefings)</span>
+                </label>
+                <input
+                  id="invite-phone"
+                  type="tel"
+                  value={inviteForm.phoneWhatsapp || ''}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setInviteForm((prev) => ({ ...prev, phoneWhatsapp: val }))
+                  }}
+                  placeholder="e.g. +91 98765 43210"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#059669] focus:bg-white focus:outline-none"
                 />
               </div>
 

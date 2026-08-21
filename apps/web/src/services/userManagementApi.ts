@@ -4,6 +4,7 @@ export interface OrganizationUser {
   id: string
   displayName: string
   email: string
+  phoneWhatsapp?: string | null
   role: 'project_manager' | 'internal_team_member'
   isActive: boolean
   createdAt: string
@@ -16,6 +17,7 @@ export interface OrganizationUser {
 export interface InviteUserInput {
   displayName: string
   email: string
+  phoneWhatsapp?: string
   role: 'project_manager' | 'internal_team_member'
   mode: 'invite_link' | 'instant_password'
   initialPassword?: string
@@ -33,6 +35,7 @@ export interface InviteUserResponse {
 
 export interface UpdateUserInput {
   displayName?: string
+  phoneWhatsapp?: string | null
   role?: 'project_manager' | 'internal_team_member'
   isActive?: boolean
   reassignToUserId?: string | null
@@ -56,6 +59,7 @@ export interface MemberDetailResponse {
     id: string
     displayName: string
     email: string
+    phoneWhatsapp?: string | null
     role: 'project_manager' | 'internal_team_member'
     isActive: boolean
     createdAt: string
@@ -110,6 +114,9 @@ export async function inviteOrganizationUser(
     email: input.email.trim(),
     role: input.role,
     mode: input.mode,
+  }
+  if (input.phoneWhatsapp?.trim()) {
+    payload.phoneWhatsapp = input.phoneWhatsapp.trim()
   }
   if (input.mode === 'instant_password' && input.initialPassword?.trim()) {
     payload.initialPassword = input.initialPassword.trim()

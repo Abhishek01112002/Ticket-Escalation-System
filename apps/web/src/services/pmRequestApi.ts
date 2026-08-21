@@ -31,6 +31,7 @@ type Summary = {
     id: string
     name: string
     email: string
+    phoneWhatsapp?: string | null
     assignedAt: string
   } | null
   sla: {
@@ -41,7 +42,7 @@ type Summary = {
   }
 }
 
-function user(name?: string, email?: string, id?: string): User {
+function user(name?: string, email?: string, id?: string, phoneWhatsapp?: string | null): User {
   const safeName = String(name || email || 'Specialist')
   const initials = safeName
     .replace(/^Demo\s+/i, '')
@@ -56,6 +57,7 @@ function user(name?: string, email?: string, id?: string): User {
     initials: initials || 'SP',
     role: 'team_member',
     team: 'Specialist team',
+    phoneWhatsapp: phoneWhatsapp || null,
   }
 }
 
@@ -85,6 +87,7 @@ function map(row: Summary): Request {
             row.currentResponsibility.name,
             row.currentResponsibility.email,
             row.currentResponsibility.id,
+            row.currentResponsibility.phoneWhatsapp,
           ),
           assignedAt: row.currentResponsibility.assignedAt,
           acknowledgedAt: row.sla?.acknowledgedAt ?? undefined,

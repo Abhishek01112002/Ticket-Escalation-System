@@ -51,6 +51,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         u.id,
         u.display_name AS name,
         u.email,
+        u.phone_whatsapp,
         COUNT(a.id)::int AS active_assignments_count
       FROM users u
       JOIN user_roles ur   ON ur.user_id = u.id
@@ -61,7 +62,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
       WHERE u.organization_id = $1
         AND u.is_active        = true
         AND role.code          = 'internal_team_member'
-      GROUP BY u.id, u.display_name, u.email
+      GROUP BY u.id, u.display_name, u.email, u.phone_whatsapp
       ORDER BY u.display_name
     `, [user.organizationId])
     return {
@@ -69,6 +70,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         id:                    r.id,
         name:                  r.name,
         email:                 r.email,
+        phoneWhatsapp:         r.phone_whatsapp || null,
         activeAssignmentsCount: r.active_assignments_count,
       })),
     }
@@ -136,6 +138,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         u2.id         AS assignee_id,
         u2.display_name AS assignee_name,
         u2.email      AS assignee_email,
+        u2.phone_whatsapp AS assignee_phone_whatsapp,
         a.assigned_at,
         s.deadline_at,
         s.status      AS sla_status,
@@ -175,6 +178,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
           id:         row.assignee_id,
           name:       row.assignee_name,
           email:      row.assignee_email,
+          phoneWhatsapp: row.assignee_phone_whatsapp || null,
           assignedAt: row.assigned_at,
         } : null,
         sla: {
@@ -193,7 +197,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
     const result = await pool.query(`
       SELECT r.public_reference AS reference,r.version,r.requirement,r.urgency,r.status,r.created_at,r.updated_at,
         d.slug AS service_domain,c.name,c.company,c.email,c.phone_whatsapp,
-        u2.id AS assignee_id,u2.display_name AS assignee_name,u2.email AS assignee_email,a.assigned_at,
+        u2.id AS assignee_id,u2.display_name AS assignee_name,u2.email AS assignee_email,u2.phone_whatsapp AS assignee_phone_whatsapp,a.assigned_at,
         s.started_at,s.deadline_at,s.status AS sla_status,s.acknowledged_at,s.breached_at
       FROM requests r JOIN clients c ON c.id=r.client_id JOIN service_domains d ON d.id=r.service_domain_id
       LEFT JOIN assignments a ON a.request_id=r.id AND a.ended_at IS NULL LEFT JOIN users u2 ON u2.id=a.assignee_user_id
@@ -219,6 +223,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
           id:         row.assignee_id,
           name:       row.assignee_name,
           email:      row.assignee_email,
+          phoneWhatsapp: row.assignee_phone_whatsapp || null,
           assignedAt: row.assigned_at,
         } : null,
         sla: { startedAt: row.started_at, deadlineAt: row.deadline_at, status: row.sla_status, acknowledgedAt: row.acknowledged_at, breachedAt: row.breached_at },

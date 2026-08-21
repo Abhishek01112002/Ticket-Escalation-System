@@ -51,12 +51,12 @@ try {
   const priyaPassword = process.env.DEV_PRIYA_PASSWORD || 'Priya#Ops2026!Dev'
 
   const users = [
-    ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001', hashPassword(pmPassword)],
-    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-internal-subject-001', hashPassword(rohanPassword)],
-    ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001', hashPassword(priyaPassword)],
+    ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001', hashPassword(pmPassword), '+919900011122'],
+    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-internal-subject-001', hashPassword(rohanPassword), '+919876543210'],
+    ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001', hashPassword(priyaPassword), '+919811122233'],
   ]
 
-  for (const [displayName, email, role, authSubject, passwordHash] of users) {
+  for (const [displayName, email, role, authSubject, passwordHash, phoneWhatsapp] of users) {
     await client.query(
       'UPDATE users SET auth_subject = NULL WHERE auth_subject = $1 AND email <> $2',
       [authSubject, email]
@@ -72,14 +72,14 @@ try {
     if (!user) {
       user = (
         await client.query(
-          'INSERT INTO users(organization_id, display_name, email, auth_subject, password_hash, is_active, is_demo) VALUES ($1, $2, $3, $4, $5, true, false) ON CONFLICT (auth_subject) DO UPDATE SET display_name = EXCLUDED.display_name, email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, is_active = true RETURNING id',
-          [org.id, displayName, email, authSubject, passwordHash]
+          'INSERT INTO users(organization_id, display_name, email, auth_subject, password_hash, phone_whatsapp, is_active, is_demo) VALUES ($1, $2, $3, $4, $5, $6, true, false) ON CONFLICT (auth_subject) DO UPDATE SET display_name = EXCLUDED.display_name, email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, phone_whatsapp = EXCLUDED.phone_whatsapp, is_active = true RETURNING id',
+          [org.id, displayName, email, authSubject, passwordHash, phoneWhatsapp]
         )
       ).rows[0]
     } else {
       await client.query(
-        'UPDATE users SET display_name = $1, auth_subject = $2, password_hash = $3, is_active = true WHERE id = $4',
-        [displayName, authSubject, passwordHash, user.id]
+        'UPDATE users SET display_name = $1, auth_subject = $2, password_hash = $3, phone_whatsapp = $4, is_active = true WHERE id = $5',
+        [displayName, authSubject, passwordHash, phoneWhatsapp, user.id]
       )
     }
 
