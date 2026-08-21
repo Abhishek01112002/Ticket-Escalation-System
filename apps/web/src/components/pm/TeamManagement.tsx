@@ -241,31 +241,31 @@ export function TeamManagement({
   useEffect(() => { setPage(1) }, [search, roleFilter, statusFilter, pageSize])
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* Top Header & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e2e8f0] pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-text-primary tracking-tight">Team Management</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-elevated border border-border text-text-muted">
+            <h1 className="text-xl font-bold text-[#0f172a] tracking-tight">Team Management</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] border border-[#cbd5e1] text-[#334155]">
               {users.length} members
             </span>
           </div>
-          <p className="text-xs text-text-muted mt-1">
+          <p className="text-xs text-[#64748b] mt-1 font-normal">
             Manage organization members, assign roles, monitor SLA compliance, and audit mutations.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* View Toggle */}
-          <div className="flex bg-surface-elevated p-1 rounded-xl border border-border text-xs font-medium">
+          <div className="flex bg-[#f1f5f9] p-1 rounded-xl border border-[#cbd5e1] text-xs font-semibold">
             <button
               type="button"
               onClick={() => setActiveView('members')}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeView === 'members'
-                  ? 'bg-surface text-brand font-semibold shadow-sm'
-                  : 'text-text-muted hover:text-text-primary'
+                  ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
+                  : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
               }`}
             >
               Directory
@@ -273,10 +273,10 @@ export function TeamManagement({
             <button
               type="button"
               onClick={() => setActiveView('audit')}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeView === 'audit'
-                  ? 'bg-surface text-brand font-semibold shadow-sm'
-                  : 'text-text-muted hover:text-text-primary'
+                  ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
+                  : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
               }`}
             >
               Audit Trail
@@ -286,7 +286,7 @@ export function TeamManagement({
           <button
             type="button"
             onClick={() => setMatrixOpen(true)}
-            className="px-3.5 py-2 bg-surface-elevated hover:bg-border text-text-primary border border-border rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-white hover:bg-[#f8fafc] text-[#0f172a] border border-[#cbd5e1] rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>🛡️ Permissions Matrix</span>
           </button>
@@ -298,13 +298,14 @@ export function TeamManagement({
                 setInviteForm({
                   displayName: '',
                   email: '',
+                  phoneWhatsapp: '',
                   role: 'internal_team_member',
                   mode: 'invite_link',
                   initialPassword: '',
                 })
                 setInviteModalOpen(true)
               }}
-              className="px-4 py-2 bg-brand hover:bg-brand/90 text-text-inverse rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>+ Add Team Member</span>
             </button>
@@ -317,26 +318,26 @@ export function TeamManagement({
       ) : (
         <>
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div className="p-4 bg-surface-elevated border border-border rounded-2xl">
-              <div className="text-[11px] text-text-muted font-medium">Active Members</div>
-              <div className="text-2xl font-bold text-text-primary mt-1">{activeCount}</div>
-              <div className="text-[11px] text-brand mt-0.5">Ready for incident triage</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 bg-white border border-[#e2e8f0] rounded-2xl shadow-xs">
+              <div className="text-[11.5px] text-[#64748b] font-bold uppercase tracking-wider">Active Members</div>
+              <div className="text-3xl font-extrabold text-[#0f172a] mt-1">{activeCount}</div>
+              <div className="text-[12px] text-[#047857] font-semibold mt-0.5">Ready for incident triage</div>
             </div>
-            <div className="p-4 bg-surface-elevated border border-border rounded-2xl">
-              <div className="text-[11px] text-text-muted font-medium">Project Managers</div>
-              <div className="text-2xl font-bold text-purple-400 mt-1">{pmCount}</div>
-              <div className="text-[11px] text-text-muted mt-0.5">Admin & escalation access</div>
+            <div className="p-5 bg-white border border-[#e2e8f0] rounded-2xl shadow-xs">
+              <div className="text-[11.5px] text-[#64748b] font-bold uppercase tracking-wider">Project Managers</div>
+              <div className="text-3xl font-extrabold text-[#6d28d9] mt-1">{pmCount}</div>
+              <div className="text-[12px] text-[#64748b] font-medium mt-0.5">Admin &amp; escalation access</div>
             </div>
-            <div className="p-4 bg-surface-elevated border border-border rounded-2xl">
-              <div className="text-[11px] text-text-muted font-medium">Operations Specialists</div>
-              <div className="text-2xl font-bold text-teal-400 mt-1">{specialistCount}</div>
-              <div className="text-[11px] text-text-muted mt-0.5">Active triage executors</div>
+            <div className="p-5 bg-white border border-[#e2e8f0] rounded-2xl shadow-xs">
+              <div className="text-[11.5px] text-[#64748b] font-bold uppercase tracking-wider">Operations Specialists</div>
+              <div className="text-3xl font-extrabold text-[#0f766e] mt-1">{specialistCount}</div>
+              <div className="text-[12px] text-[#64748b] font-medium mt-0.5">Active triage executors</div>
             </div>
           </div>
 
           {/* Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface-elevated/40 p-2.5 rounded-2xl border border-border">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#e2e8f0] shadow-xs">
             <div className="relative flex-1">
               <input
                 ref={searchInputRef}
@@ -344,13 +345,13 @@ export function TeamManagement({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or email... (Press / to focus)"
-                className="w-full bg-surface border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-2 text-xs text-text-muted hover:text-text-primary"
+                  className="absolute right-3 top-2 text-xs text-[#64748b] hover:text-[#0f172a] cursor-pointer"
                 >
                   ✕
                 </button>
@@ -361,7 +362,7 @@ export function TeamManagement({
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as any)}
-                className="bg-surface border border-border rounded-xl px-3 py-2 text-xs text-text-primary focus:border-brand focus:outline-none"
+                className="bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0f172a] focus:border-[#0f172a] focus:bg-white focus:outline-none cursor-pointer"
                 aria-label="Filter by role"
               >
                 <option value="all">All Roles</option>
@@ -372,7 +373,7 @@ export function TeamManagement({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="bg-surface border border-border rounded-xl px-3 py-2 text-xs text-text-primary focus:border-brand focus:outline-none"
+                className="bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0f172a] focus:border-[#0f172a] focus:bg-white focus:outline-none cursor-pointer"
                 aria-label="Filter by status"
               >
                 <option value="all">All Statuses</option>
@@ -386,19 +387,19 @@ export function TeamManagement({
           {loading ? (
             <div className="space-y-3 py-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-16 bg-surface-elevated rounded-2xl animate-pulse" />
+                <div key={i} className="h-16 bg-[#f1f5f9] rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-surface-elevated/20">
-              <p className="text-sm font-semibold text-text-primary">No team members match your criteria</p>
-              <p className="text-xs text-text-muted mt-1">Try clearing search filters or invite a new member.</p>
+            <div className="p-12 text-center border border-dashed border-[#cbd5e1] rounded-2xl bg-white">
+              <p className="text-sm font-bold text-[#0f172a]">No team members match your criteria</p>
+              <p className="text-xs text-[#64748b] mt-1">Try clearing search filters or invite a new member.</p>
             </div>
           ) : (
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface-elevated/60 text-text-muted border-b border-border font-medium">
+                  <thead className="bg-[#f8fafc] text-[#475569] border-b border-[#e2e8f0] text-[11px] font-bold uppercase tracking-wider">
                     <tr>
                       <th className="p-4">Member</th>
                       <th className="p-4">Role</th>
@@ -408,7 +409,7 @@ export function TeamManagement({
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border text-text-secondary">
+                  <tbody className="divide-y divide-[#f1f5f9] text-[#334155]">
                     {pagedUsers.map((u) => {
                       const initials = u.displayName
                         .split(' ')
@@ -421,31 +422,31 @@ export function TeamManagement({
                         <tr
                           key={u.id}
                           onClick={() => setSelectedMember(u)}
-                          className="hover:bg-surface-elevated/40 transition-colors cursor-pointer group"
+                          className="hover:bg-[#f8fafc] transition-colors cursor-pointer group"
                         >
                           <td className="p-4">
                             <div className="flex items-center gap-3">
                               <Avatar user={{ name: u.displayName, initials }} size="sm" />
                               <div>
-                                <div className="font-semibold text-text-primary group-hover:text-brand transition-colors flex items-center gap-1.5">
+                                <div className="font-bold text-[#0f172a] group-hover:text-[#059669] transition-colors flex items-center gap-1.5 text-[13.5px]">
                                   <span>{u.displayName}</span>
                                   {u.id === currentUser.id && (
-                                    <span className="text-[10px] bg-brand/10 text-brand px-1.5 py-0.2 rounded font-mono font-medium">
+                                    <span className="text-[10px] bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0] px-1.5 py-0.2 rounded font-mono font-bold">
                                       You
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-text-muted font-mono">{u.email}</div>
+                                <div className="text-[11.5px] text-[#64748b] font-mono">{u.email}</div>
                               </div>
                             </div>
                           </td>
 
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-bold border ${
                                 u.role === 'project_manager'
-                                  ? 'bg-purple-950/50 text-purple-300 border-purple-800/60'
-                                  : 'bg-teal-950/50 text-teal-300 border-teal-800/60'
+                                  ? 'bg-[#f5f3ff] text-[#6d28d9] border-[#ddd6fe]'
+                                  : 'bg-[#f0fdfa] text-[#0f766e] border-[#99f6e4]'
                               }`}
                             >
                               {u.role === 'project_manager' ? 'Project Manager' : 'Specialist'}
@@ -454,15 +455,15 @@ export function TeamManagement({
 
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-bold border ${
                                 u.isActive
-                                  ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/50'
-                                  : 'bg-slate-800 text-slate-400 border-slate-700'
+                                  ? 'bg-[#ecfdf5] text-[#065f46] border-[#a7f3d0]'
+                                  : 'bg-[#f8fafc] text-[#475569] border-[#cbd5e1]'
                               }`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${
-                                  u.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                                  u.isActive ? 'bg-[#059669] animate-pulse' : 'bg-[#94a3b8]'
                                 }`}
                               />
                               {u.isActive ? 'Active' : 'Deactivated'}
@@ -470,26 +471,26 @@ export function TeamManagement({
                           </td>
 
                           <td className="p-4">
-                            <span className="text-text-primary font-medium">
+                            <span className="text-[#0f172a] font-bold text-[13px]">
                               {u.activeAssignmentsCount}{' '}
-                              <span className="text-text-muted text-[11px]">active</span>
+                              <span className="text-[#64748b] text-[11.5px] font-normal">active</span>
                             </span>
                           </td>
 
                           <td className="p-4">
                             <div className="flex items-center gap-2">
                               <span
-                                className={`font-semibold ${
+                                className={`font-bold text-[13.5px] ${
                                   u.slaComplianceRate >= 95
-                                    ? 'text-emerald-400'
+                                    ? 'text-[#047857]'
                                     : u.slaComplianceRate >= 80
-                                    ? 'text-amber-400'
-                                    : 'text-rose-400'
+                                    ? 'text-[#b45309]'
+                                    : 'text-[#b91c1c]'
                                 }`}
                               >
                                 {u.slaComplianceRate}%
                               </span>
-                              <span className="text-[10px] text-text-muted font-normal">on-time</span>
+                              <span className="text-[11px] text-[#64748b] font-medium">on-time</span>
                             </div>
                           </td>
 
@@ -501,7 +502,7 @@ export function TeamManagement({
                                     <button
                                       type="button"
                                       onClick={() => setDeactivateTarget(u)}
-                                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-medium transition-colors"
+                                      className="px-2.5 py-1 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#be123c] border border-[#fecdd3] rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
                                     >
                                       Deactivate
                                     </button>
@@ -509,7 +510,7 @@ export function TeamManagement({
                                     <button
                                       type="button"
                                       onClick={() => handleReactivate(u)}
-                                      className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-medium transition-colors"
+                                      className="px-2.5 py-1 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#047857] border border-[#a7f3d0] rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
                                     >
                                       Reactivate
                                     </button>
@@ -519,7 +520,7 @@ export function TeamManagement({
                               <button
                                 type="button"
                                 onClick={() => setSelectedMember(u)}
-                                className="px-2.5 py-1 bg-surface-elevated hover:bg-border text-text-primary rounded-lg text-xs font-medium transition-colors"
+                                className="px-3 py-1 bg-white hover:bg-[#f8fafc] text-[#0f172a] border border-[#cbd5e1] rounded-lg text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
                               >
                                 View →
                               </button>
@@ -534,19 +535,19 @@ export function TeamManagement({
 
               {/* ── Pagination Footer ─────────────────────────────────── */}
               {totalPages > 1 || totalItems > 8 ? (
-                <div className="px-5 py-3.5 border-t border-border bg-surface-elevated/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 text-[12px] text-text-muted">
+                <div className="px-5 py-3.5 border-t border-[#e2e8f0] bg-[#f8fafc] flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 text-[12px] text-[#64748b]">
                     <span>
-                      Showing <strong className="text-text-primary">{startIdx + 1}–{endIdx}</strong> of{' '}
-                      <strong className="text-text-primary">{totalItems}</strong> members
+                      Showing <strong className="text-[#0f172a] font-bold">{startIdx + 1}–{endIdx}</strong> of{' '}
+                      <strong className="text-[#0f172a] font-bold">{totalItems}</strong> members
                     </span>
-                    <span className="text-border">|</span>
+                    <span className="text-[#cbd5e1]">|</span>
                     <div className="flex items-center gap-1.5">
-                      <span>Per page:</span>
+                      <span className="font-medium">Per page:</span>
                       <select
                         value={pageSize}
                         onChange={e => setPageSize(Number(e.target.value))}
-                        className="h-7 px-2 rounded-lg border border-border bg-surface text-[11.5px] font-medium text-text-primary focus:border-brand outline-none cursor-pointer"
+                        className="h-7 px-2 rounded-lg border border-[#cbd5e1] bg-white text-[11.5px] font-bold text-[#0f172a] focus:border-[#0f172a] outline-none cursor-pointer"
                       >
                         <option value={8}>8</option>
                         <option value={16}>16</option>
@@ -560,7 +561,7 @@ export function TeamManagement({
                       type="button"
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={currentPage <= 1}
-                      className="h-7.5 px-2.5 rounded-lg border border-border bg-surface text-text-primary text-[12px] font-medium hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none"
+                      className="h-7.5 px-2.5 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] text-[12px] font-bold hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none shadow-2xs"
                     >
                       ‹ Prev
                     </button>
@@ -587,8 +588,8 @@ export function TeamManagement({
                           onClick={() => setPage(pNum)}
                           className={`w-7.5 h-7.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer select-none flex items-center justify-center ${
                             isActive
-                              ? 'bg-brand text-white shadow-xs'
-                              : 'border border-border bg-surface text-text-muted hover:bg-surface-elevated hover:text-text-primary'
+                              ? 'bg-[#0f172a] text-white shadow-xs'
+                              : 'border border-[#cbd5e1] bg-white text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a]'
                           }`}
                         >
                           {pNum}
@@ -600,7 +601,7 @@ export function TeamManagement({
                       type="button"
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
-                      className="h-7.5 px-2.5 rounded-lg border border-border bg-surface text-text-primary text-[12px] font-medium hover:bg-surface-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none"
+                      className="h-7.5 px-2.5 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] text-[12px] font-bold hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer select-none shadow-2xs"
                     >
                       Next ›
                     </button>

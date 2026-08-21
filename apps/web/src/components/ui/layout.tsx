@@ -71,10 +71,8 @@ export function Avatar({
 
   return (
     <span
-      className={`${dims} rounded-full flex items-center justify-center font-bold flex-none select-none`}
+      className={`${dims} rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] text-white border border-[#cbd5e1]/40 flex items-center justify-center font-bold flex-none select-none shadow-2xs`}
       style={{
-        background: '#0f172a',
-        color: '#ffffff',
         letterSpacing: '-0.02em',
       }}
       aria-label={user.name}

@@ -186,8 +186,8 @@ export function ProductionPMPortal({
   /* Development identity switcher — quiet footer utility */
   const devSwitcher =
     import.meta.env.DEV ? (
-      <div className="pt-3 border-t border-[#18232e] flex items-center gap-2">
-        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#131f2b] text-[#94a3b8] border border-[#1e2d3d] flex-none">
+      <div className="pt-2.5 border-t border-[#18293a] flex items-center gap-2 px-1">
+        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#152332] text-[#38bdf8] border border-[#1e3a5f] flex-none">
           DEV
         </span>
         <select
@@ -196,11 +196,11 @@ export function ProductionPMPortal({
             sessionStorage.setItem(DEV_ACTOR_KEY, e.target.value)
             location.reload()
           }}
-          className="text-[11px] font-medium text-[#94a3b8] hover:text-white bg-transparent border-none outline-none cursor-pointer flex-1 truncate transition-colors"
+          className="text-[11px] font-semibold text-slate-300 hover:text-white bg-[#101c28] border border-[#18293a] rounded-lg px-2 py-1 outline-none cursor-pointer flex-1 truncate transition-colors"
           title="Switch dev actor"
         >
-          <option value="pm" className="bg-[#0b131b] text-white">Project Manager</option>
-          <option value="internal" className="bg-[#0b131b] text-white">Rohan Mehta (Specialist)</option>
+          <option value="pm" className="bg-[#0b131b] text-white">PM Session</option>
+          <option value="internal" className="bg-[#0b131b] text-white">Specialist Session</option>
         </select>
       </div>
     ) : null
