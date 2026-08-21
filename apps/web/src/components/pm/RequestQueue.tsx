@@ -17,10 +17,10 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { Request, RequestFilters, ServiceDomain } from '../../domain/ticket'
+import type { Request, RequestFilters, ServiceDomain, TeamMemberCapacity } from '../../domain/ticket'
 import { DEFAULT_FILTERS, SERVICE_DOMAIN_LABELS } from '../../domain/ticket'
 import { formatDateTime, formatRemaining, getSlaSummary } from '../../domain/sla'
-import { AttentionChip, EscalationDot, StatusBadge } from '../ui/badges'
+import { AttentionChip, EscalationDot, SlaCountdownBadge, StatusBadge } from '../ui/badges'
 import { Avatar } from '../ui/layout'
 import { EmptyQueue } from '../ui/feedback'
 
@@ -70,15 +70,19 @@ export function RequestQueue({
   currentUserId,
   isPM,
   activeFilters,
+  teamMembers = [],
   onFiltersChange,
   onOpen,
+  onInlineAssign,
 }: {
   requests: Request[]
   currentUserId: string
   isPM: boolean
   activeFilters: RequestFilters
+  teamMembers?: TeamMemberCapacity[]
   onFiltersChange: (filters: RequestFilters) => void
   onOpen: (id: string) => void
+  onInlineAssign?: (reference: string, assigneeUserId: string, expectedVersion: number) => Promise<void>
 }) {
   // ── Local UI state ─────────────────────────────────────────────────────────
   type StatusTab = 'all' | 'needs_ack' | 'escalated' | 'in_progress' | 'resolved'
@@ -502,7 +506,14 @@ export function RequestQueue({
               </thead>
               <tbody className="divide-y divide-[#edf1ef]">
                 {paginated.map(req => (
-                  <RequestRow key={req.id} request={req} onOpen={onOpen} />
+                  <RequestRow
+                    key={req.id}
+                    request={req}
+                    isPM={isPM}
+                    teamMembers={teamMembers}
+                    onInlineAssign={onInlineAssign}
+                    onOpen={onOpen}
+                  />
                 ))}
               </tbody>
             </table>
@@ -533,12 +544,6 @@ export function RequestQueue({
                     for (let i = 1; i <= totalPages; i++) chips.push(i)
                   } else {
                     chips.push(1)
-                    if (currentPage > 3) chips.push('…')
-                    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-                      chips.push(i)
-                    }
-                    if (currentPage < totalPages - 2) chips.push('…')
-                    chips.push(totalPages)
                   }
                   return chips.map((chip, idx) =>
                     chip === '…' ? (
@@ -578,13 +583,160 @@ export function RequestQueue({
   )
 }
 
-// ── RequestRow (unchanged design, same FAANG density) ─────────────────────────
+// ── InlineAssignPopover ───────────────────────────────────────────────────────
 
-function RequestRow({ request, onOpen }: { request: Request; onOpen: (id: string) => void }) {
+function InlineAssignPopover({
+  request,
+  teamMembers,
+  onAssign,
+  onClose,
+}: {
+  request: Request
+  teamMembers: TeamMemberCapacity[]
+  onAssign: (assigneeUserId: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [onClose])
+
+  const filtered = teamMembers.filter(
+    m =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.email.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const handleSelect = async (memberId: string) => {
+    setLoading(true)
+    try {
+      await onAssign(memberId)
+      onClose()
+    } catch {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      ref={popoverRef}
+      onClick={e => e.stopPropagation()}
+      className="absolute left-0 top-full mt-1.5 z-50 w-72 bg-white rounded-xl shadow-xl border border-[#cbd5e1] p-2.5 text-left animate-fade-in font-sans"
+    >
+      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 border-b border-[#f1f5f9]">
+        <span className="text-[11.5px] font-bold text-[#0f172a] uppercase tracking-wider">
+          Assign Specialist
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-[#94a3b8] hover:text-[#0f172a] text-xs font-bold px-1 rounded hover:bg-[#f1f5f9] cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search specialists..."
+        className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] focus:border-[#059669] focus:ring-1 focus:ring-[#059669] outline-none text-[#0f172a] placeholder-[#94a3b8] mb-2 bg-[#f8fafc]"
+      />
+
+      <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+        {filtered.length === 0 ? (
+          <div className="p-3 text-center text-xs text-[#94a3b8]">No specialists found</div>
+        ) : (
+          filtered.map(member => {
+            const isCurrent = request.assignment?.assignee?.id === member.id
+            const count = member.activeAssignmentsCount
+            const countBadgeColor =
+              count === 0
+                ? 'bg-[#ecfdf5] text-[#065f46] border-[#d1fae5]'
+                : count <= 3
+                ? 'bg-[#fffbeb] text-[#92400e] border-[#fef3c7]'
+                : 'bg-[#fff1f2] text-[#9f1239] border-[#ffe4e6]'
+
+            return (
+              <button
+                key={member.id}
+                type="button"
+                disabled={loading}
+                onClick={() => handleSelect(member.id)}
+                className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer ${
+                  isCurrent
+                    ? 'bg-[#f0fdf4] border border-[#bbf7d0]'
+                    : 'hover:bg-[#f8fafc] border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar user={{ name: cleanName(member.name) }} size="xs" />
+                  <div className="min-w-0">
+                    <span className="text-xs font-semibold text-[#0f172a] block truncate">
+                      {cleanName(member.name)}
+                    </span>
+                    <span className="text-[10.5px] text-[#64748b] block truncate">
+                      {member.email}
+                    </span>
+                  </div>
+                </div>
+
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${countBadgeColor} flex-none ml-2`}
+                  title={`${count} active tickets`}
+                >
+                  {count} active
+                </span>
+              </button>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── RequestRow (FAANG-grade density with 1-Click Assignment & Live SLA) ────────
+
+function RequestRow({
+  request,
+  isPM,
+  teamMembers = [],
+  onInlineAssign,
+  onOpen,
+}: {
+  request: Request
+  isPM?: boolean
+  teamMembers?: TeamMemberCapacity[]
+  onInlineAssign?: (reference: string, assigneeUserId: string, expectedVersion: number) => Promise<void>
+  onOpen: (id: string) => void
+}) {
   const [hovered, setHovered] = useState(false)
-  const sla = getSlaSummary(request)
+  const [showAssignPopover, setShowAssignPopover] = useState(false)
   const isEscalated = Boolean(request.escalation) && request.workflowStatus !== 'resolved'
-  const isResolved  = request.workflowStatus === 'resolved'
 
   return (
     <tr
@@ -619,8 +771,54 @@ function RequestRow({ request, onOpen }: { request: Request; onOpen: (id: string
           {SERVICE_DOMAIN_LABELS[request.serviceDomain]}
         </span>
       </td>
-      <td className="px-4 py-3.5">
-        {request.assignment?.assignee ? (
+      <td className="px-4 py-3.5 relative">
+        {isPM && teamMembers && teamMembers.length > 0 && request.workflowStatus !== 'resolved' ? (
+          <div className="relative inline-block">
+            {request.assignment?.assignee ? (
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation()
+                  setShowAssignPopover(!showAssignPopover)
+                }}
+                className="flex items-center gap-2 group px-2 py-1 -mx-2 -my-1 rounded-lg hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+                title="Click to reassign specialist"
+              >
+                <Avatar user={{ name: cleanName(request.assignment.assignee.name) }} size="xs" />
+                <span className="text-[13px] font-medium text-[#0b131b] group-hover:text-[#059669] truncate max-w-[120px]">
+                  {cleanName(request.assignment.assignee.name)}
+                </span>
+                <span className="text-[11px] text-[#94a3b8] opacity-0 group-hover:opacity-100 transition-opacity">
+                  ⇄
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation()
+                  setShowAssignPopover(!showAssignPopover)
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-semibold text-[#065f46] bg-[#ecfdf5] border border-dashed border-[#10b981] hover:bg-[#d1fae5] transition-colors cursor-pointer"
+              >
+                <span>+ Assign</span>
+              </button>
+            )}
+
+            {showAssignPopover && (
+              <InlineAssignPopover
+                request={request}
+                teamMembers={teamMembers}
+                onAssign={async memberId => {
+                  if (onInlineAssign) {
+                    await onInlineAssign(request.id, memberId, request.version ?? 1)
+                  }
+                }}
+                onClose={() => setShowAssignPopover(false)}
+              />
+            )}
+          </div>
+        ) : request.assignment?.assignee ? (
           <div className="flex items-center gap-2">
             <Avatar user={{ name: cleanName(request.assignment.assignee.name) }} size="xs" />
             <span className="text-[13px] font-medium text-[#0b131b] truncate max-w-[130px]">
@@ -635,26 +833,12 @@ function RequestRow({ request, onOpen }: { request: Request; onOpen: (id: string
         <StatusBadge status={request.workflowStatus} size="sm" />
       </td>
       <td className="px-5 py-3.5">
-        {isResolved ? (
-          <span className="text-[12.5px] text-[#059669] font-semibold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
-            Resolved
-          </span>
-        ) : isEscalated ? (
-          <span className="text-[12.5px] text-[#e11d48] font-bold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#e11d48] animate-pulse" />
-            Escalated
-          </span>
-        ) : (
-          <div className="flex flex-col">
-            <span className={`text-[12.5px] font-bold ${sla.state === 'warning' ? 'text-[#d97706]' : sla.state === 'breached' ? 'text-[#e11d48]' : 'text-[#0b131b]'}`}>
-              {formatRemaining(sla.remainingMs)}
-            </span>
-            <span className="text-[11px] text-[#8da0b0]">
-              {formatDateTime(request.assignment.acknowledgementDeadline)}
-            </span>
-          </div>
-        )}
+        <SlaCountdownBadge
+          deadlineAt={request.assignment?.acknowledgementDeadline || request.sla?.deadlineAt}
+          status={request.workflowStatus}
+          acknowledgedAt={request.assignment?.acknowledgedAt || request.sla?.acknowledgedAt}
+          size="sm"
+        />
       </td>
     </tr>
   )

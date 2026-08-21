@@ -138,6 +138,20 @@ export function ProductionPMPortal({
     }
   }
 
+  const handleInlineAssign = async (
+    reference: string,
+    assigneeUserId: string,
+    expectedVersion: number
+  ) => {
+    try {
+      await assignRequest(reference, assigneeUserId, expectedVersion)
+      showToast('Specialist assigned successfully.', 'success')
+      retry()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to assign specialist.', 'error')
+    }
+  }
+
   const handleBack = () => {
     setSelected(null)
     setMobileNavOpen(false)
@@ -468,8 +482,10 @@ export function ProductionPMPortal({
               currentUserId={user.id}
               isPM={isPM}
               activeFilters={activeFilters}
+              teamMembers={members}
               onFiltersChange={setActiveFilters}
               onOpen={openRequest}
+              onInlineAssign={handleInlineAssign}
             />
           )}
         </main>

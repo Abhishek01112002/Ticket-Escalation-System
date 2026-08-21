@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import type { WorkflowStatus } from '../../domain/ticket'
+import { getDynamicSlaInfo } from '../../domain/sla'
 import { FlagIcon } from './icons'
 
 const STATUS_CONFIG: Record<
@@ -179,5 +181,100 @@ export function AttentionChip({
       <span className="font-semibold">{count}</span>
       <span>{label}</span>
     </div>
+  )
+}
+
+export function SlaCountdownBadge({
+  deadlineAt,
+  status,
+  acknowledgedAt,
+  size = 'sm',
+}: {
+  deadlineAt?: string | null
+  status: string
+  acknowledgedAt?: string | null
+  size?: 'sm' | 'md'
+}) {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    if (status === 'resolved' || status === 'acknowledged' || status === 'in_progress' || !deadlineAt) return
+    const interval = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(interval)
+  }, [status, deadlineAt])
+
+  const info = getDynamicSlaInfo(deadlineAt, status, acknowledgedAt, now)
+
+  const config = {
+    healthy: {
+      bg: '#ecfdf5',
+      border: '#d1fae5',
+      text: '#065f46',
+      dot: '#10b981',
+      pulse: false,
+    },
+    warning: {
+      bg: '#f0f9ff',
+      border: '#e0f2fe',
+      text: '#0369a1',
+      dot: '#0284c7',
+      pulse: false,
+    },
+    urgent: {
+      bg: '#fffbeb',
+      border: '#fde68a',
+      text: '#92400e',
+      dot: '#d97706',
+      pulse: true,
+    },
+    breached: {
+      bg: '#fff1f2',
+      border: '#fecdd3',
+      text: '#9f1239',
+      dot: '#e11d48',
+      pulse: true,
+    },
+    acknowledged: {
+      bg: '#f8fafc',
+      border: '#e2e8f0',
+      text: '#475569',
+      dot: '#64748b',
+      pulse: false,
+    },
+    resolved: {
+      bg: '#f8fafc',
+      border: '#e2e8f0',
+      text: '#64748b',
+      dot: '#94a3b8',
+      pulse: false,
+    },
+    unassigned: {
+      bg: '#f8fafc',
+      border: '#e2e8f0',
+      text: '#94a3b8',
+      dot: '#cbd5e1',
+      pulse: false,
+    },
+  }[info.state]
+
+  const padding = size === 'md' ? 'px-2.5 py-1 text-[12px]' : 'px-2 py-0.5 text-[11px]'
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md font-medium tracking-tight whitespace-nowrap ${padding}`}
+      style={{
+        background: config.bg,
+        border: `1px solid ${config.border}`,
+        color: config.text,
+      }}
+      title={info.detailLabel}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full flex-none ${config.pulse ? 'animate-pulse' : ''}`}
+        style={{ background: config.dot }}
+        aria-hidden="true"
+      />
+      <span>{info.badgeLabel}</span>
+    </span>
   )
 }

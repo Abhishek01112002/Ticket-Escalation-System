@@ -79,3 +79,64 @@ export function formatHumanDateTime(value: string | Date): string {
   }).format(date)
   return `${dayMonth} · ${time}`
 }
+
+export interface DynamicSlaInfo {
+  state: 'healthy' | 'warning' | 'urgent' | 'breached' | 'acknowledged' | 'resolved' | 'unassigned'
+  badgeLabel: string
+  detailLabel: string
+  remainingMs: number
+}
+
+/**
+ * Real-time dynamic SLA countdown helper for live tickers
+ */
+export function getDynamicSlaInfo(
+  deadlineAt: string | null | undefined,
+  status: string,
+  acknowledgedAt?: string | null,
+  now = new Date()
+): DynamicSlaInfo {
+  if (status === 'resolved') {
+    return { state: 'resolved', badgeLabel: 'Resolved', detailLabel: 'Ticket resolved', remainingMs: 0 }
+  }
+  if (acknowledgedAt || status === 'acknowledged' || status === 'in_progress') {
+    return { state: 'acknowledged', badgeLabel: 'Acknowledged', detailLabel: 'SLA fulfilled', remainingMs: 0 }
+  }
+  if (!deadlineAt) {
+    return { state: 'unassigned', badgeLabel: 'No SLA Set', detailLabel: 'Awaiting assignment', remainingMs: 0 }
+  }
+  const deadline = new Date(deadlineAt)
+  if (isNaN(deadline.getTime())) {
+    return { state: 'unassigned', badgeLabel: 'No SLA Set', detailLabel: 'Invalid deadline', remainingMs: 0 }
+  }
+
+  const remainingMs = deadline.getTime() - now.getTime()
+  if (remainingMs <= 0) {
+    const overdueMinutes = Math.floor(Math.abs(remainingMs) / (60 * 1000))
+    const overdueHours = Math.floor(overdueMinutes / 60)
+    const overdueStr = overdueHours > 0 ? `${overdueHours}h ${overdueMinutes % 60}m ago` : `${overdueMinutes}m ago`
+    return {
+      state: 'breached',
+      badgeLabel: 'Breached',
+      detailLabel: `Breached ${overdueStr}`,
+      remainingMs,
+    }
+  }
+
+  const minutes = Math.floor(remainingMs / (60 * 1000))
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  let badgeLabel = ''
+  if (days > 0) badgeLabel = `${days}d ${hours % 24}h left`
+  else if (hours > 0) badgeLabel = `${hours}h ${minutes % 60}m left`
+  else badgeLabel = `${minutes}m left`
+
+  if (hours < 1) {
+    return { state: 'urgent', badgeLabel, detailLabel: `${minutes}m remaining`, remainingMs }
+  }
+  if (hours < 4) {
+    return { state: 'warning', badgeLabel, detailLabel: `${hours}h ${minutes % 60}m remaining`, remainingMs }
+  }
+  return { state: 'healthy', badgeLabel, detailLabel: `${hours}h remaining`, remainingMs }
+}
