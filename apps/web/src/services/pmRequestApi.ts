@@ -4,7 +4,7 @@ import { getAuthHeaders } from './devAuth'
 const headers = getAuthHeaders
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(path, { headers: headers() })
+  const response = await fetch(path, { headers: headers(), credentials: 'include' })
   if (!response.ok) {
     throw new Error(
       response.status === 401

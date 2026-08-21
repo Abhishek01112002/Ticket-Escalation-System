@@ -25,11 +25,12 @@
     "build": "npm run build --workspace @nvara/config && npm run build --workspace @nvara/db && npm run build --workspace @nvara/api && npm run build --workspace @nvara/worker && npm run build --workspace @nvara/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:integration": "node tests/integration/client-request.mjs",
+    "test:integration:auth": "node tests/integration/auth_boundary.mjs",
     "test:integration:workflow": "node tests/integration/workflow.mjs",
     "test:integration:hardening": "node tests/integration/concurrency.mjs",
     "test:integration:worker": "node --import tsx tests/integration/worker-fixture.mjs",
     "test:e2e": "playwright test",
-    "test:all": "npm run test:integration && npm run test:integration:workflow && npm run test:integration:hardening && npm run test:integration:worker && npm run test:e2e"
+    "test:all": "npm run test:integration && npm run test:integration:auth && npm run test:integration:workflow && npm run test:integration:hardening && npm run test:integration:worker && npm run test:e2e"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

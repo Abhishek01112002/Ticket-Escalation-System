@@ -1,6 +1,6 @@
 import { ArrowRightIcon } from '../ui/icons'
 
-export type ActivePortal = 'landing' | 'client' | 'pm'
+export type ActivePortal = 'landing' | 'client' | 'pm' | 'tracker'
 
 export function Landing({ onPortal }: { onPortal: (p: ActivePortal) => void }) {
   return (
@@ -43,18 +43,18 @@ export function Landing({ onPortal }: { onPortal: (p: ActivePortal) => void }) {
           </p>
         </div>
 
-        {/* Dual Portal Gateways (Both High-Contrast, Clean Light Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-12">
+        {/* Portal Gateways — 3 cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full mb-12">
           {/* Gateway 1: Client Portal */}
           <button
             type="button"
             onClick={() => onPortal('client')}
-            className="group text-left bg-white rounded-xl border border-[#e2e8f0] p-8 transition-all duration-150 hover:border-[#94a3b8] hover:shadow-md focus-visible:outline-2 flex flex-col justify-between cursor-pointer"
+            className="group text-left bg-white rounded-xl border border-[#e2e8f0] p-7 transition-all duration-150 hover:border-[#94a3b8] hover:shadow-md focus-visible:outline-2 flex flex-col justify-between cursor-pointer"
             style={{ boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)' }}
           >
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#ecfdf5] text-[#059669] border border-[#d1fae5] flex items-center justify-center mb-6 group-hover:bg-[#059669] group-hover:text-white transition-colors">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-11 h-11 rounded-xl bg-[#ecfdf5] text-[#059669] border border-[#d1fae5] flex items-center justify-center mb-5 group-hover:bg-[#059669] group-hover:text-white transition-colors">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                   <line x1="16" y1="13" x2="8" y2="13" />
@@ -64,35 +64,70 @@ export function Landing({ onPortal }: { onPortal: (p: ActivePortal) => void }) {
               </div>
 
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[18px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#059669] transition-colors">
+                <h2 className="text-[16px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#059669] transition-colors">
                   Client Request Portal
                 </h2>
-                <span className="text-[11.5px] font-semibold text-[#059669] bg-[#ecfdf5] px-2.5 py-0.5 rounded-full border border-[#d1fae5]">
-                  Public Intake
+                <span className="text-[11px] font-semibold text-[#059669] bg-[#ecfdf5] px-2 py-0.5 rounded-full border border-[#d1fae5]">
+                  Public
                 </span>
               </div>
 
-              <p className="text-[13.5px] text-[#475569] leading-relaxed mb-6">
-                Submit marketing, software engineering, SEO, or media production requirements and receive a verifiable reference code.
+              <p className="text-[13px] text-[#475569] leading-relaxed mb-5">
+                Submit marketing, SEO, or media production requirements and receive a verifiable reference code.
               </p>
             </div>
 
-            <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between text-[13.5px] font-semibold text-[#059669] group-hover:text-[#047857]">
+            <div className="pt-3.5 border-t border-[#f1f5f9] flex items-center justify-between text-[13px] font-semibold text-[#059669] group-hover:text-[#047857]">
               <span>Submit a new client request</span>
-              <span className="transition-transform group-hover:translate-x-1.5"><ArrowRightIcon size={16} /></span>
+              <span className="transition-transform group-hover:translate-x-1.5"><ArrowRightIcon size={15} /></span>
             </div>
           </button>
 
-          {/* Gateway 2: PM Workspace (Clean High-Contrast White Card) */}
+          {/* Gateway 2: Track Request */}
           <button
             type="button"
-            onClick={() => onPortal('pm')}
-            className="group text-left bg-white rounded-xl border border-[#e2e8f0] p-8 transition-all duration-150 hover:border-[#94a3b8] hover:shadow-md focus-visible:outline-2 flex flex-col justify-between cursor-pointer"
+            onClick={() => onPortal('tracker')}
+            className="group text-left bg-white rounded-xl border border-[#e2e8f0] p-7 transition-all duration-150 hover:border-[#94a3b8] hover:shadow-md focus-visible:outline-2 flex flex-col justify-between cursor-pointer"
             style={{ boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)' }}
           >
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#eef2ff] text-[#4f46e5] border border-[#e0e7ff] flex items-center justify-center mb-6 group-hover:bg-[#4f46e5] group-hover:text-white transition-colors">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-11 h-11 rounded-xl bg-[#fffbeb] text-[#d97706] border border-[#fde68a] flex items-center justify-center mb-5 group-hover:bg-[#d97706] group-hover:text-white transition-colors">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-[16px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#d97706] transition-colors">
+                  Track Your Request
+                </h2>
+                <span className="text-[11px] font-semibold text-[#d97706] bg-[#fffbeb] px-2 py-0.5 rounded-full border border-[#fde68a]">
+                  Status
+                </span>
+              </div>
+
+              <p className="text-[13px] text-[#475569] leading-relaxed mb-5">
+                Enter your tracking reference to see the current status and progress of a submitted request.
+              </p>
+            </div>
+
+            <div className="pt-3.5 border-t border-[#f1f5f9] flex items-center justify-between text-[13px] font-semibold text-[#d97706] group-hover:text-[#b45309]">
+              <span>Track request status</span>
+              <span className="transition-transform group-hover:translate-x-1.5"><ArrowRightIcon size={15} /></span>
+            </div>
+          </button>
+
+          {/* Gateway 3: PM Workspace */}
+          <button
+            type="button"
+            onClick={() => onPortal('pm')}
+            className="group text-left bg-white rounded-xl border border-[#e2e8f0] p-7 transition-all duration-150 hover:border-[#94a3b8] hover:shadow-md focus-visible:outline-2 flex flex-col justify-between cursor-pointer"
+            style={{ boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)' }}
+          >
+            <div>
+              <div className="w-11 h-11 rounded-xl bg-[#eef2ff] text-[#4f46e5] border border-[#e0e7ff] flex items-center justify-center mb-5 group-hover:bg-[#4f46e5] group-hover:text-white transition-colors">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                   <line x1="8" y1="21" x2="16" y2="21" />
                   <line x1="12" y1="17" x2="12" y2="21" />
@@ -100,25 +135,26 @@ export function Landing({ onPortal }: { onPortal: (p: ActivePortal) => void }) {
               </div>
 
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[18px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#4f46e5] transition-colors">
-                  Operations &amp; PM Workspace
+                <h2 className="text-[16px] font-bold text-[#0f172a] tracking-tight group-hover:text-[#4f46e5] transition-colors">
+                  Operations Workspace
                 </h2>
-                <span className="text-[11.5px] font-semibold text-[#4f46e5] bg-[#eef2ff] px-2.5 py-0.5 rounded-full border border-[#e0e7ff]">
-                  Internal Operations
+                <span className="text-[11px] font-semibold text-[#4f46e5] bg-[#eef2ff] px-2 py-0.5 rounded-full border border-[#e0e7ff]">
+                  Internal
                 </span>
               </div>
 
-              <p className="text-[13.5px] text-[#475569] leading-relaxed mb-6">
-                Manage incoming operational queue, assign specialists, monitor 24-hour SLA timers, and resolve escalated requests.
+              <p className="text-[13px] text-[#475569] leading-relaxed mb-5">
+                Manage operational queue, assign specialists, monitor SLA timers, and resolve escalated requests.
               </p>
             </div>
 
-            <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between text-[13.5px] font-semibold text-[#4f46e5] group-hover:text-[#3730a3]">
-              <span>Open operations workspace</span>
-              <span className="transition-transform group-hover:translate-x-1.5"><ArrowRightIcon size={16} /></span>
+            <div className="pt-3.5 border-t border-[#f1f5f9] flex items-center justify-between text-[13px] font-semibold text-[#4f46e5] group-hover:text-[#3730a3]">
+              <span>Sign in to operations workspace</span>
+              <span className="transition-transform group-hover:translate-x-1.5"><ArrowRightIcon size={15} /></span>
             </div>
           </button>
         </div>
+
 
         {/* Operational Guardrails Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t border-[#e2e8f0] pt-8">

@@ -1,5 +1,12 @@
+import { scryptSync, randomBytes } from 'node:crypto'
 import { loadConfig } from '@nvara/config'
 import { createDbPool } from './index.js'
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex')
+  const derivedKey = scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 })
+  return `${salt}:${derivedKey.toString('hex')}`
+}
 
 const pool = createDbPool(loadConfig().DATABASE_URL)
 const client = await pool.connect()
@@ -38,20 +45,39 @@ try {
     await client.query('INSERT INTO roles(code) VALUES ($1) ON CONFLICT (code) DO NOTHING', [code])
   }
 
-  // 4. Users (Clean professional names)
+  // 4. Users (Independent Scrypt credentials provisioned)
+  const pmPassword = process.env.DEV_PM_PASSWORD || 'Nvara#PM2026!Secure'
+  const rohanPassword = process.env.DEV_ROHAN_PASSWORD || 'Rohan#Ops2026!Dev'
+  const priyaPassword = process.env.DEV_PRIYA_PASSWORD || 'Priya#Ops2026!Dev'
+
   const users = [
-    ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001'],
-    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-rohan-subject-001'],
-    ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001'],
+    ['Project Manager', 'pm@nvaramedia.com', 'project_manager', 'dev-pm-subject-001', hashPassword(pmPassword)],
+    ['Rohan Mehta', 'rohan.mehta@nvaramedia.com', 'internal_team_member', 'dev-rohan-subject-001', hashPassword(rohanPassword)],
+    ['Priya Sharma', 'priya.sharma@nvaramedia.com', 'internal_team_member', 'dev-priya-subject-001', hashPassword(priyaPassword)],
   ]
 
-  for (const [displayName, email, role, authSubject] of users) {
-    const user = (
+  for (const [displayName, email, role, authSubject, passwordHash] of users) {
+    let user = (
       await client.query(
-        'INSERT INTO users(organization_id, display_name, email, auth_subject, is_active, is_demo) VALUES ($1, $2, $3, $4, true, false) ON CONFLICT (organization_id, email) DO UPDATE SET display_name = EXCLUDED.display_name, auth_subject = EXCLUDED.auth_subject, is_active = true RETURNING id',
-        [org.id, displayName, email, authSubject]
+        'SELECT id FROM users WHERE organization_id = $1 AND email = $2',
+        [org.id, email]
       )
     ).rows[0]
+
+    if (!user) {
+      user = (
+        await client.query(
+          'INSERT INTO users(organization_id, display_name, email, auth_subject, password_hash, is_active, is_demo) VALUES ($1, $2, $3, $4, $5, true, false) ON CONFLICT (auth_subject) DO UPDATE SET display_name = EXCLUDED.display_name, email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, is_active = true RETURNING id',
+          [org.id, displayName, email, authSubject, passwordHash]
+        )
+      ).rows[0]
+    } else {
+      await client.query(
+        'UPDATE users SET display_name = $1, auth_subject = $2, password_hash = $3, is_active = true WHERE id = $4',
+        [displayName, authSubject, passwordHash, user.id]
+      )
+    }
+
     const roleRow = (await client.query('SELECT id FROM roles WHERE code=$1', [role])).rows[0]
     await client.query('INSERT INTO user_roles(user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [user.id, roleRow.id])
   }
@@ -60,15 +86,10 @@ try {
   const rohanUser = (await client.query("SELECT id FROM users WHERE email='rohan.mehta@nvaramedia.com' AND organization_id=$1", [org.id])).rows[0]
   const priyaUser = (await client.query("SELECT id FROM users WHERE email='priya.sharma@nvaramedia.com' AND organization_id=$1", [org.id])).rows[0]
 
-  // 5. Clean previous requests to ensure exactly 10 clean records
-  await client.query('DELETE FROM escalation_events WHERE request_id IN (SELECT id FROM requests WHERE organization_id=$1)', [org.id])
-  await client.query('DELETE FROM audit_events WHERE organization_id=$1', [org.id])
-  await client.query('DELETE FROM sla_records WHERE assignment_id IN (SELECT a.id FROM assignments a JOIN requests r ON r.id=a.request_id WHERE r.organization_id=$1)', [org.id])
-  await client.query('DELETE FROM assignments WHERE request_id IN (SELECT id FROM requests WHERE organization_id=$1)', [org.id])
-  await client.query('DELETE FROM requests WHERE organization_id=$1', [org.id])
-
-  // 6. Exactly 10 realistic client request scenarios
-  const seedRequests = [
+  const existingReqs = await client.query('SELECT count(*)::int as count FROM requests WHERE organization_id=$1', [org.id])
+  if (existingReqs.rows[0].count === 0) {
+    // 6. Exactly 10 realistic client request scenarios
+    const seedRequests = [
     {
       ref: 'NVARA-2026-AURA101',
       clientName: 'Sarah Jenkins',
@@ -268,6 +289,7 @@ try {
         )
       }
     }
+  }
   }
 
   await client.query('COMMIT')

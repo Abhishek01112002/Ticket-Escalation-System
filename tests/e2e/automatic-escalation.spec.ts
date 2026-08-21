@@ -4,10 +4,11 @@ import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 
 const api = process.env.API_BASE_URL ?? 'http://127.0.0.1:4000'
+const dbUrl = process.env.DATABASE_URL ?? 'postgres://nvara:nvara_local_dev_only@localhost:55432/nvara'
 const pm = { 'X-Dev-Auth-Subject': 'dev-pm-subject-001' }
 
 test('worker escalation persists through API and PM portal', async ({ page, request }) => {
-  const db = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+  const db = new pg.Pool({ connectionString: dbUrl })
   const connection = await db.connect()
   const unique = randomUUID()
   let reference = ''
@@ -31,7 +32,7 @@ test('worker escalation persists through API and PM portal', async ({ page, requ
   const before = await request.get(`${api}/v1/pm/requests/${reference}`, { headers: pm })
   expect(before.ok()).toBeTruthy()
   expect((await before.json()).request.escalation).toBeNull()
-  execFileSync(process.execPath, ['--import', 'tsx', 'tests/integration/run-worker-once.mjs'], { env: process.env, stdio: 'pipe' })
+  execFileSync(process.execPath, ['--import', 'tsx', 'tests/integration/run-worker-once.mjs'], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: 'pipe' })
 
   const detail = await request.get(`${api}/v1/pm/requests/${reference}`, { headers: pm })
   const body = (await detail.json()).request
@@ -42,18 +43,23 @@ test('worker escalation persists through API and PM portal', async ({ page, requ
   expect((await timeline.json()).events.filter((event: any) => event.type === 'escalation_triggered')).toHaveLength(1)
 
   await page.goto('/')
-  await page.getByRole('button', { name: /Project Manager Portal/ }).click()
+  await page.getByRole('button', { name: /Operations & PM Workspace/i }).click()
+  await page.getByLabel(/Work Email/i).fill('pm@nvaramedia.com')
+  await page.getByLabel(/^Password/i).fill(process.env.DEV_PM_PASSWORD || 'Nvara#PM2026!Secure')
+  await page.locator('button[type="submit"]').click()
+  await expect(page.getByText('Operations Queue').first()).toBeVisible({ timeout: 15000 })
+
   await expect(page.getByText(reference)).toBeVisible()
   await page.getByRole('button', { name: new RegExp(reference) }).click()
-  await expect(page.getByText('Escalation triggered', { exact: true })).toBeVisible()
-  await expect(page.getByText(/Responsible person:/)).toContainText('Demo Internal Team Member')
+  await expect(page.getByText('SLA Breach Escalation Triggered')).toBeVisible()
+  await expect(page.getByText('Internal Team Member').first()).toBeVisible()
   await page.reload()
   await page.getByRole('button', { name: new RegExp(reference) }).click()
-  await expect(page.getByText('Escalation triggered', { exact: true })).toBeVisible()
-  execFileSync(process.execPath, ['--import', 'tsx', 'tests/integration/run-worker-once.mjs'], { env: process.env, stdio: 'pipe' })
+  await expect(page.getByText('SLA Breach Escalation Triggered')).toBeVisible()
+  execFileSync(process.execPath, ['--import', 'tsx', 'tests/integration/run-worker-once.mjs'], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: 'pipe' })
   await page.reload()
   await page.getByRole('button', { name: new RegExp(reference) }).click()
-  await expect(page.getByText('Escalation triggered', { exact: true })).toBeVisible()
+  await expect(page.getByText('SLA Breach Escalation Triggered')).toBeVisible()
   const after = await request.get(`${api}/v1/pm/requests/${reference}/timeline`, { headers: pm })
   expect((await after.json()).events.filter((event: any) => event.type === 'escalation_triggered')).toHaveLength(1)
   await db.end()

@@ -12,6 +12,7 @@ async function mutate(path: string, body: { expectedVersion: number; assigneeUse
     const response = await fetch(path, {
       method: 'POST',
       headers: { ...headers(), 'Idempotency-Key': key },
+      credentials: 'include',
       body: JSON.stringify(body),
     })
     if (!response.ok) {

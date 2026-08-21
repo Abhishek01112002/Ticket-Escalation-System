@@ -4,9 +4,13 @@ import type { SubmissionConfirmation } from '../../services/clientRequestApi'
 export function ConfirmationScreen({
   request,
   onBack,
+  onTrackRequest,
 }: {
   request: SubmissionConfirmation
   onBack(): void
+  /** Navigate to tracker with this confirmation's reference pre-filled.
+   *  Optional — if not provided the CTA is omitted. */
+  onTrackRequest?(reference: string): void
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -106,10 +110,19 @@ export function ConfirmationScreen({
             </ol>
           </div>
 
+          {onTrackRequest && (
+            <button
+              type="button"
+              onClick={() => onTrackRequest(request.reference)}
+              className="w-full mb-3 py-2.5 rounded-md bg-[#059669] text-white text-[13.5px] font-semibold hover:bg-[#047857] transition-colors"
+            >
+              Track this request →
+            </button>
+          )}
           <button
             type="button"
             onClick={onBack}
-            className="w-full py-2.5 rounded-md bg-[#0f172a] text-white text-[13.5px] font-semibold hover:bg-[#1e293b] transition-colors"
+            className="w-full py-2.5 rounded-md bg-[#f1f5f9] text-[#334155] text-[13.5px] font-semibold hover:bg-[#e2e8f0] transition-colors"
           >
             Return to Portal Home
           </button>

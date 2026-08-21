@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type pg from 'pg';
 import type { AppConfig } from '@nvara/config';
 import { ApiError } from './errors.js';
+import { logger } from './logger.js';
 
 const submissionSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -117,7 +118,14 @@ export function clientRequestErrorHandler(app: FastifyInstance): void {
     const statusCode = error instanceof ApiError ? error.statusCode : fastifyCode === 'FST_ERR_CTP_BODY_TOO_LARGE' ? 413 : fastifyCode === 'FST_ERR_CTP_INVALID_JSON_BODY' || fastifyCode === 'FST_ERR_VALIDATION' ? 400 : typeof error === 'object' && error && 'statusCode' in error && typeof error.statusCode === 'number' ? error.statusCode : 500;
     const code = error instanceof ApiError ? error.code : fastifyCode === 'FST_ERR_CTP_BODY_TOO_LARGE' ? 'PAYLOAD_TOO_LARGE' : fastifyCode === 'FST_ERR_CTP_INVALID_JSON_BODY' ? 'INVALID_JSON' : fastifyCode === 'FST_ERR_VALIDATION' ? 'VALIDATION_ERROR' : statusCode < 500 ? 'REQUEST_ERROR' : 'INTERNAL_ERROR';
     const message = error instanceof ApiError ? error.message : code === 'PAYLOAD_TOO_LARGE' ? 'Request body is too large.' : code === 'INVALID_JSON' ? 'Request body must be valid JSON.' : code === 'VALIDATION_ERROR' ? 'Please check the submitted fields.' : statusCode < 500 && error instanceof Error ? error.message : 'Internal server error';
-    request.log.error({ requestId: request.id, code, statusCode, fields: error instanceof ApiError ? error.fields && Object.keys(error.fields) : undefined }, 'request failed');
+    
+    // Attach error summary to request for HTTP response logger
+    (request as any).routeError = { code, message };
+
+    if (statusCode >= 500) {
+      logger.error('Unhandled internal server error', error, { requestId: request.id, method: request.method, url: request.url });
+    }
+
     return reply.code(statusCode).send({ error: { code, message, requestId: request.id, fields: error instanceof ApiError ? error.fields : undefined } });
   });
 }

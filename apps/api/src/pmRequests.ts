@@ -6,11 +6,6 @@ import { authenticatePm } from './auth.js'
 const reference = (request: FastifyRequest) => String((request.params as any).id ?? '')
 
 export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, config: AppConfig) {
-  app.get('/v1/auth/me', async request => {
-    const user = await authenticatePm(request, pool, config)
-    return { user: { id: user.id, displayName: user.displayName, email: user.email, role: user.role, organizationName: user.organizationName } }
-  })
-
   app.get('/v1/pm/team-members', async request => {
     const user = await authenticatePm(request, pool, config)
     const result = await pool.query("SELECT u.id,u.display_name AS name,u.email FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles role ON role.id=ur.role_id WHERE u.organization_id=$1 AND u.is_active=true AND role.code='internal_team_member'", [user.organizationId])
