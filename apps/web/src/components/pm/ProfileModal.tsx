@@ -200,7 +200,7 @@ export function ProfileModal({
               </div>
             </div>
 
-            <div className="p-4 bg-emerald-950/20 border border-emerald-800/30 rounded-xl text-xs text-emerald-300">
+            <div className="p-4 bg-[#ecfdf5] border border-[#d1fae5] rounded-xl text-xs text-[#065f46] font-medium">
               🔒 Authenticated via enterprise Scrypt-hashed credentials with zero-knowledge token management.
             </div>
           </div>
@@ -210,20 +210,20 @@ export function ProfileModal({
         {activeTab === 'password' && (
           <form onSubmit={handleChangePassword} className="p-6 space-y-4">
             {error && (
-              <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs text-rose-300" role="alert">
+              <div className="p-3 bg-[#fff1f2] border border-[#ffe4e6] rounded-xl text-xs font-medium text-[#9f1239]" role="alert">
                 {error}
               </div>
             )}
 
             {successMsg && (
-              <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-xs text-emerald-300" role="status">
+              <div className="p-3 bg-[#ecfdf5] border border-[#d1fae5] rounded-xl text-xs font-medium text-[#065f46]" role="status">
                 {successMsg}
               </div>
             )}
 
             <div className="space-y-3">
               <div>
-                <label htmlFor="current-password" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="current-password" className="block text-xs font-semibold text-[#334155] mb-1">
                   Current Password
                 </label>
                 <input
@@ -232,13 +232,13 @@ export function ProfileModal({
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter existing password"
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="profile-new-password" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="profile-new-password" className="block text-xs font-semibold text-[#334155] mb-1">
                   New Password
                 </label>
                 <input
@@ -247,14 +247,14 @@ export function ProfileModal({
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min 8 characters"
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                   required
                 />
                 <PasswordStrengthMeter password={newPassword} />
               </div>
 
               <div>
-                <label htmlFor="confirm-new-password" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="confirm-new-password" className="block text-xs font-semibold text-[#334155] mb-1">
                   Confirm New Password
                 </label>
                 <input
@@ -263,18 +263,18 @@ export function ProfileModal({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                   required
                 />
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-[#475569] font-medium cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showPasswords}
                     onChange={(e) => setShowPasswords(e.target.checked)}
-                    className="rounded border-border bg-surface-elevated text-brand focus:ring-0"
+                    className="rounded border-[#cbd5e1] bg-white text-[#059669] focus:ring-0 cursor-pointer"
                   />
                   <span>Show passwords</span>
                 </label>
@@ -285,7 +285,7 @@ export function ProfileModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-brand hover:bg-brand/90 text-text-inverse rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Updating Password...' : 'Update Password'}
               </button>
@@ -298,8 +298,8 @@ export function ProfileModal({
           <div className="p-6 space-y-4 overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-text-primary block">Active Logins</span>
-                <span className="text-[11px] text-text-muted">
+                <span className="text-xs font-bold text-[#0f172a] block">Active Logins</span>
+                <span className="text-[11px] text-[#64748b]">
                   Devices currently authenticated with your account.
                 </span>
               </div>
@@ -307,14 +307,14 @@ export function ProfileModal({
                 type="button"
                 onClick={handleRevokeOthers}
                 disabled={sessionsLoading}
-                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-medium transition-colors"
+                className="px-3 py-1.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-[#ffe4e6] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
                 Sign out other devices
               </button>
             </div>
 
             {sessionsMsg && (
-              <div className="p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300">
+              <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-xs text-[#334155] font-medium">
                 {sessionsMsg}
               </div>
             )}
@@ -322,7 +322,7 @@ export function ProfileModal({
             {sessionsLoading ? (
               <div className="space-y-2 py-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-14 bg-surface-elevated rounded-xl animate-pulse" />
+                  <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl animate-pulse" />
                 ))}
               </div>
             ) : (
@@ -330,19 +330,19 @@ export function ProfileModal({
                 {sessions.map((sess) => (
                   <div
                     key={sess.id}
-                    className="p-3 bg-surface-elevated border border-border rounded-xl flex items-center justify-between text-xs"
+                    className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl flex items-center justify-between text-xs"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-text-primary">{sess.userAgent}</span>
+                        <span className="font-semibold text-[#0f172a]">{sess.userAgent}</span>
                         {sess.isCurrent && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] border border-[#d1fae5]">
                             Current Device
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-text-muted mt-0.5">
-                        IP: <code className="font-mono">{sess.ipAddress}</code> · Last active{' '}
+                      <div className="text-[11px] text-[#64748b] mt-0.5 font-medium">
+                        IP: <code className="font-mono text-[#0f172a]">{sess.ipAddress}</code> · Last active{' '}
                         {new Date(sess.lastSeenAt).toLocaleTimeString()}
                       </div>
                     </div>

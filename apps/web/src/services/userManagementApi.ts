@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './devAuth'
+
 export interface OrganizationUser {
   id: string
   displayName: string
@@ -73,7 +75,7 @@ export interface AuditLogEntry {
 
 export async function listOrganizationUsers(): Promise<OrganizationUser[]> {
   const res = await fetch('/v1/pm/users', {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
   })
 
@@ -88,7 +90,7 @@ export async function listOrganizationUsers(): Promise<OrganizationUser[]> {
 
 export async function getMemberDetail(id: string): Promise<MemberDetailResponse> {
   const res = await fetch(`/v1/pm/users/${encodeURIComponent(id)}/detail`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
   })
 
@@ -115,7 +117,7 @@ export async function inviteOrganizationUser(
 
   const res = await fetch('/v1/pm/users/invite', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
     body: JSON.stringify(payload),
   })
@@ -140,7 +142,7 @@ export async function updateOrganizationUser(
 ): Promise<{ user: OrganizationUser; message: string }> {
   const res = await fetch(`/v1/pm/users/${encodeURIComponent(userId)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
     body: JSON.stringify(input),
   })
@@ -155,7 +157,7 @@ export async function updateOrganizationUser(
 
 export async function listAuditLogs(): Promise<AuditLogEntry[]> {
   const res = await fetch('/v1/pm/audit-logs', {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
   })
 

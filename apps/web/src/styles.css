@@ -23,6 +23,14 @@
   --color-ink-faint:        #8da0b0;
   --color-ink-subtle:       #cbd6dc;
 
+  /* ── Enterprise Semantic Typography & Surface Aliases ── */
+  --color-brand:            #059669;
+  --color-text-primary:     #0f172a;
+  --color-text-secondary:   #334155;
+  --color-text-muted:       #64748b;
+  --color-text-inverse:     #ffffff;
+  --color-surface-elevated: #f8fafc;
+
   /* ── Nvara Warm Studio Neutral Surfaces ── */
   --color-surface:          #ffffff;
   --color-surface-2:        #f4f6f5;

@@ -627,20 +627,21 @@ export function TeamManagement({
       <PermissionsMatrixModal isOpen={matrixOpen} onClose={() => setMatrixOpen(false)} />
 
       {/* Add Member / Dual-Mode Invite Modal */}
+      {/* Add Member Modal */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-text-primary">Add Team Member</h2>
-                <p className="text-xs text-text-muted mt-0.5">
+                <h2 className="text-base font-bold text-[#0f172a]">Add Team Member</h2>
+                <p className="text-xs text-[#64748b] mt-0.5">
                   Onboard a new specialist or manager to your workspace.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setInviteModalOpen(false)}
-                className="text-text-muted hover:text-text-primary p-2 rounded-lg hover:bg-surface-elevated transition-colors"
+                className="text-[#64748b] hover:text-[#0f172a] p-1.5 rounded-lg hover:bg-[#e2e8f0] transition-colors cursor-pointer"
                 aria-label="Close add member modal"
               >
                 <XIcon />
@@ -650,15 +651,15 @@ export function TeamManagement({
             <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
               {/* Mode Switcher */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-text-muted">Onboarding Mode</label>
+                <label className="block text-xs font-semibold text-[#334155]">Onboarding Mode</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setInviteForm((prev) => ({ ...prev, mode: 'invite_link' }))}
-                    className={`p-2.5 rounded-xl border text-left text-xs transition-colors ${
+                    className={`p-2.5 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
                       inviteForm.mode === 'invite_link'
-                        ? 'bg-brand/10 border-brand text-brand font-semibold'
-                        : 'bg-surface-elevated border-border text-text-muted hover:text-text-primary'
+                        ? 'bg-[#ecfdf5] border-[#059669] text-[#065f46] font-semibold shadow-xs'
+                        : 'bg-[#f8fafc] border-[#e2e8f0] text-[#64748b] hover:text-[#0f172a]'
                     }`}
                   >
                     <span className="block font-bold">Invite Link</span>
@@ -667,10 +668,10 @@ export function TeamManagement({
                   <button
                     type="button"
                     onClick={() => setInviteForm((prev) => ({ ...prev, mode: 'instant_password' }))}
-                    className={`p-2.5 rounded-xl border text-left text-xs transition-colors ${
+                    className={`p-2.5 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
                       inviteForm.mode === 'instant_password'
-                        ? 'bg-brand/10 border-brand text-brand font-semibold'
-                        : 'bg-surface-elevated border-border text-text-muted hover:text-text-primary'
+                        ? 'bg-[#ecfdf5] border-[#059669] text-[#065f46] font-semibold shadow-xs'
+                        : 'bg-[#f8fafc] border-[#e2e8f0] text-[#64748b] hover:text-[#0f172a]'
                     }`}
                   >
                     <span className="block font-bold">Temp Password</span>
@@ -680,7 +681,7 @@ export function TeamManagement({
               </div>
 
               <div>
-                <label htmlFor="invite-display-name" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="invite-display-name" className="block text-xs font-semibold text-[#334155] mb-1">
                   Full Name
                 </label>
                 <input
@@ -693,12 +694,12 @@ export function TeamManagement({
                     setInviteForm((prev) => ({ ...prev, displayName: val }))
                   }}
                   placeholder="e.g. Alex Rivera"
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label htmlFor="invite-email" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="invite-email" className="block text-xs font-semibold text-[#334155] mb-1">
                   Work Email Address
                 </label>
                 <input
@@ -711,12 +712,12 @@ export function TeamManagement({
                     setInviteForm((prev) => ({ ...prev, email: val }))
                   }}
                   placeholder="alex.rivera@nvaramedia.com"
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label htmlFor="invite-role" className="block text-xs font-medium text-text-muted mb-1">
+                <label htmlFor="invite-role" className="block text-xs font-semibold text-[#334155] mb-1">
                   System Role
                 </label>
                 <select
@@ -726,16 +727,16 @@ export function TeamManagement({
                     const val = e.target.value as any
                     setInviteForm((prev) => ({ ...prev, role: val }))
                   }}
-                  className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary focus:border-brand focus:outline-none"
+                  className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-semibold text-[#0f172a] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                 >
                   <option value="internal_team_member">Operations Specialist (Queue Execution)</option>
-                  <option value="project_manager">Project Manager (Admin & Assignment)</option>
+                  <option value="project_manager">Project Manager (Admin &amp; Assignment)</option>
                 </select>
               </div>
 
               {inviteForm.mode === 'instant_password' && (
                 <div>
-                  <label htmlFor="invite-password" className="block text-xs font-medium text-text-muted mb-1">
+                  <label htmlFor="invite-password" className="block text-xs font-semibold text-[#334155] mb-1">
                     Initial Password (Optional)
                   </label>
                   <input
@@ -747,7 +748,7 @@ export function TeamManagement({
                       setInviteForm((prev) => ({ ...prev, initialPassword: val }))
                     }}
                     placeholder="Leave blank to auto-generate"
-                    className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted focus:border-brand focus:outline-none"
+                    className="w-full bg-[#f8fafc] border border-[#cbd5e1] rounded-xl px-3.5 py-2 text-xs font-medium text-[#0f172a] placeholder-[#94a3b8] focus:border-[#0f172a] focus:bg-white focus:outline-none"
                   />
                 </div>
               )}
@@ -756,14 +757,14 @@ export function TeamManagement({
                 <button
                   type="button"
                   onClick={() => setInviteModalOpen(false)}
-                  className="px-4 py-2 bg-surface-elevated hover:bg-border text-text-primary rounded-xl text-xs font-semibold transition-colors"
+                  className="px-4 py-2 bg-white hover:bg-[#f8fafc] text-[#334155] border border-[#cbd5e1] rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={inviteLoading}
-                  className="px-4 py-2 bg-brand hover:bg-brand/90 text-text-inverse rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {inviteLoading ? 'Creating...' : inviteForm.mode === 'invite_link' ? 'Generate Invite Link' : 'Add Member'}
                 </button>
@@ -775,14 +776,14 @@ export function TeamManagement({
 
       {/* Invite Result Modal (Invite Link or Temp Password with Copy Feedback) */}
       {inviteResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="w-10 h-10 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 flex items-center justify-center text-lg font-bold">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="w-10 h-10 rounded-full bg-[#ecfdf5] border border-[#d1fae5] text-[#059669] flex items-center justify-center text-lg font-bold">
               ✓
             </div>
             <div>
-              <h2 className="text-base font-bold text-text-primary">Team Member Created</h2>
-              <p className="text-xs text-text-muted mt-0.5">
+              <h2 className="text-base font-bold text-[#0f172a]">Team Member Created</h2>
+              <p className="text-xs text-[#64748b] mt-0.5">
                 {inviteResult.mode === 'invite_link'
                   ? `Share this one-time onboarding link with ${inviteResult.displayName}:`
                   : `Credentials generated for ${inviteResult.displayName}:`}
@@ -791,15 +792,15 @@ export function TeamManagement({
 
             {inviteResult.mode === 'invite_link' && inviteResult.inviteUrl && (
               <div className="space-y-2">
-                <div className="p-3 bg-surface-elevated border border-border rounded-xl flex items-center justify-between gap-2">
-                  <code className="text-xs font-mono text-emerald-400 break-all select-all">
+                <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl flex items-center justify-between gap-2">
+                  <code className="text-xs font-mono font-bold text-[#059669] break-all select-all">
                     {inviteResult.inviteUrl}
                   </code>
                 </div>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(inviteResult.inviteUrl!)}
-                  className="w-full py-2 bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 rounded-xl text-xs font-semibold transition-colors"
+                  className="w-full py-2 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#065f46] border border-[#d1fae5] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   {copiedLink ? '✓ Copied to clipboard!' : 'Copy Invite Link'}
                 </button>
@@ -808,16 +809,16 @@ export function TeamManagement({
 
             {inviteResult.mode === 'instant_password' && inviteResult.temporaryPassword && (
               <div className="space-y-2">
-                <div className="p-3.5 bg-surface-elevated border border-border rounded-xl space-y-1">
-                  <div className="text-[11px] text-text-muted">Temporary Login Password</div>
-                  <div className="text-sm font-mono font-bold text-emerald-400 select-all">
+                <div className="p-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl space-y-1">
+                  <div className="text-[11px] font-semibold text-[#64748b]">Temporary Login Password</div>
+                  <div className="text-sm font-mono font-bold text-[#059669] select-all">
                     {inviteResult.temporaryPassword}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(inviteResult.temporaryPassword!)}
-                  className="w-full py-2 bg-brand/10 hover:bg-brand/20 text-brand border border-brand/30 rounded-xl text-xs font-semibold transition-colors"
+                  className="w-full py-2 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#065f46] border border-[#d1fae5] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   {copiedLink ? '✓ Copied to clipboard!' : 'Copy Password'}
                 </button>
@@ -827,7 +828,7 @@ export function TeamManagement({
             <button
               type="button"
               onClick={() => setInviteResult(null)}
-              className="w-full py-2 bg-surface-elevated hover:bg-border text-text-primary rounded-xl text-xs font-semibold transition-colors"
+              className="w-full py-2 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               Done
             </button>
@@ -837,52 +838,52 @@ export function TeamManagement({
 
       {/* Deactivation & Workload Rebalancer Modal */}
       {deactivateTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-surface border border-rose-900/50 rounded-2xl shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-rose-950/60 border border-rose-800/60 text-rose-400 flex items-center justify-center font-bold text-lg">
+              <div className="w-10 h-10 rounded-full bg-[#fff1f2] border border-[#ffe4e6] text-[#e11d48] flex items-center justify-center font-bold text-lg">
                 !
               </div>
               <div>
-                <h2 className="text-base font-bold text-text-primary">
+                <h2 className="text-base font-bold text-[#0f172a]">
                   Deactivate {deactivateTarget.displayName}
                 </h2>
-                <p className="text-xs text-text-muted">Revoke access & rebalance active tickets.</p>
+                <p className="text-xs text-[#64748b]">Revoke access &amp; rebalance active tickets.</p>
               </div>
             </div>
 
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-[#334155] leading-relaxed">
               This will immediately terminate all active sessions for{' '}
-              <strong className="text-text-primary font-mono">{deactivateTarget.email}</strong>.
+              <strong className="text-[#0f172a] font-mono font-bold">{deactivateTarget.email}</strong>.
             </p>
 
             {deactivateTarget.activeAssignmentsCount > 0 && (
-              <div className="p-3.5 bg-amber-950/30 border border-amber-800/40 rounded-xl space-y-2 text-xs">
-                <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+              <div className="p-3.5 bg-[#fffbeb] border border-[#fef3c7] rounded-xl space-y-2.5 text-xs">
+                <div className="font-bold text-[#92400e] flex items-center gap-1.5">
                   <span>⚠️ Active Workload Detected</span>
-                  <span className="font-bold">({deactivateTarget.activeAssignmentsCount} open tickets)</span>
+                  <span>({deactivateTarget.activeAssignmentsCount} open tickets)</span>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-[#0f172a] font-medium">
                     <input
                       type="radio"
                       name="reassign"
                       checked={reassignOption === 'unassign'}
                       onChange={() => setReassignOption('unassign')}
-                      className="text-brand focus:ring-0"
+                      className="text-[#059669] focus:ring-0 cursor-pointer"
                     />
                     <span>Release tickets back to Unassigned Queue</span>
                   </label>
 
                   {otherActiveSpecialists.length > 0 && (
-                    <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                    <label className="flex items-center gap-2 cursor-pointer text-[#0f172a] font-medium">
                       <input
                         type="radio"
                         name="reassign"
                         checked={reassignOption === 'reassign'}
                         onChange={() => setReassignOption('reassign')}
-                        className="text-brand focus:ring-0"
+                        className="text-[#059669] focus:ring-0 cursor-pointer"
                       />
                       <span>Reassign all open tickets to another specialist:</span>
                     </label>
@@ -893,7 +894,7 @@ export function TeamManagement({
                   <select
                     value={reassignToUserId}
                     onChange={(e) => setReassignToUserId(e.target.value)}
-                    className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
+                    className="w-full mt-1.5 bg-white border border-[#cbd5e1] rounded-lg p-2 text-xs font-semibold text-[#0f172a] focus:border-[#0f172a] focus:outline-none"
                     aria-label="Select reassignment specialist"
                   >
                     <option value="">-- Choose Active Specialist --</option>
@@ -911,7 +912,7 @@ export function TeamManagement({
               <button
                 type="button"
                 onClick={() => setDeactivateTarget(null)}
-                className="px-4 py-2 bg-surface-elevated hover:bg-border text-text-primary rounded-xl text-xs font-semibold transition-colors"
+                className="px-4 py-2 bg-white hover:bg-[#f8fafc] text-[#334155] border border-[#cbd5e1] rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -919,7 +920,7 @@ export function TeamManagement({
                 type="button"
                 onClick={handleConfirmDeactivate}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {actionLoading ? 'Deactivating...' : 'Deactivate Member'}
               </button>
