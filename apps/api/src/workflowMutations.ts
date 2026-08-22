@@ -63,7 +63,7 @@ async function detail(c: pg.PoolClient, organizationId: string, reference: strin
      FROM requests r JOIN clients c ON c.id=r.client_id JOIN service_domains d ON d.id=r.service_domain_id
      LEFT JOIN assignments a ON a.request_id=r.id AND a.ended_at IS NULL
      LEFT JOIN users u ON u.id=a.assignee_user_id LEFT JOIN sla_records s ON s.assignment_id=a.id
-     WHERE r.organization_id=$1 AND r.public_reference=$2`,
+     WHERE r.organization_id=$1 AND r.public_reference=$2 AND r.deleted_at IS NULL`,
     [organizationId, reference],
   )
   if (!query.rowCount) throw new ApiError(404, 'REQUEST_NOT_FOUND', 'Request not found.')
@@ -90,7 +90,7 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       const route = routeOf(request)
       const replay = await idem(client, auth, 'POST', route, key, body)
       if (replay) { await client.query('COMMIT'); return reply.code(replay.status).send(replay.body) }
-      const currentRequest = await client.query<any>('SELECT id,status,version FROM requests WHERE organization_id=$1 AND public_reference=$2 FOR UPDATE', [auth.organizationId, String((request.params as any).id)])
+      const currentRequest = await client.query<any>('SELECT id,status,version FROM requests WHERE organization_id=$1 AND public_reference=$2 AND deleted_at IS NULL FOR UPDATE', [auth.organizationId, String((request.params as any).id)])
       if (!currentRequest.rowCount) throw new ApiError(404, 'REQUEST_NOT_FOUND', 'Request not found.')
       const row = currentRequest.rows[0]
       if (row.version !== body.expectedVersion) throw new ApiError(409, 'REQUEST_VERSION_CONFLICT', 'The request has changed. Refresh and retry.')
@@ -128,7 +128,7 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       const route = routeOf(request)
       const replay = await idem(client, auth, 'POST', route, key, body)
       if (replay) { await client.query('COMMIT'); return reply.code(replay.status).send(replay.body) }
-      const currentRequest = await client.query<any>('SELECT id,status,version FROM requests WHERE organization_id=$1 AND public_reference=$2 FOR UPDATE', [auth.organizationId, String((request.params as any).id)])
+      const currentRequest = await client.query<any>('SELECT id,status,version FROM requests WHERE organization_id=$1 AND public_reference=$2 AND deleted_at IS NULL FOR UPDATE', [auth.organizationId, String((request.params as any).id)])
       if (!currentRequest.rowCount) throw new ApiError(404, 'REQUEST_NOT_FOUND', 'Request not found.')
       const row = currentRequest.rows[0]
       if (row.version !== body.expectedVersion) throw new ApiError(409, 'REQUEST_VERSION_CONFLICT', 'The request has changed. Refresh and retry.')
@@ -147,10 +147,21 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       const isOverride = !isAssignee && isPm
 
       let next = row.status
+      let isLate = false
       if (action === 'acknowledge') {
         if (row.status !== 'awaiting_acknowledgement' || current.acknowledged_at) throw new ApiError(409, 'INVALID_STATE_TRANSITION', 'Request is not awaiting acknowledgement.')
-        const late = new Date() > new Date(current.deadline_at)
-        await client.query("UPDATE sla_records SET acknowledged_at=now(),acknowledged_by_user_id=$1,is_late=$2,status=CASE WHEN $2 THEN 'breached' ELSE 'acknowledged' END,updated_at=now() WHERE id=$3", [auth.id, late, current.sla_id])
+        const slaUpdate = await client.query<{ is_late: boolean }>(
+          `UPDATE sla_records
+           SET acknowledged_at = now(),
+               acknowledged_by_user_id = $1,
+               is_late = (now() > deadline_at),
+               status = CASE WHEN (now() > deadline_at) THEN 'breached' ELSE 'acknowledged' END,
+               updated_at = now()
+           WHERE id = $2
+           RETURNING (now() > deadline_at) AS is_late`,
+          [auth.id, current.sla_id]
+        )
+        isLate = Boolean(slaUpdate.rows[0]?.is_late)
         next = 'acknowledged'
       } else if (action === 'start-work') {
         if (row.status !== 'acknowledged' || !current.acknowledged_at) throw new ApiError(409, 'INVALID_STATE_TRANSITION', 'Acknowledgement is required before starting work.')
@@ -173,7 +184,7 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
           row.status,
           next,
           JSON.stringify({
-            late: action === 'acknowledge' && new Date() > new Date(current.deadline_at),
+            late: action === 'acknowledge' && isLate,
             override: isOverride,
             originalAssigneeUserId: isOverride ? current.assignee_user_id : undefined,
           }),

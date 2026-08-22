@@ -1,11 +1,21 @@
+import { createHash } from 'node:crypto'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type pg from 'pg'
 import { z } from 'zod'
 import type { AppConfig } from '@nvara/config'
-import { authenticatePm } from './auth.js'
+import { authenticatePm, type PmAuth } from './auth.js'
 import { ApiError } from './errors.js'
 
 const reference = (request: FastifyRequest) => String((request.params as any).id ?? '')
+
+const keyOf = (request: FastifyRequest): string | null => {
+  const value = request.headers['idempotency-key']
+  if (typeof value !== 'string' || !value.trim()) return null
+  if (value.trim().length > 200) throw new ApiError(400, 'VALIDATION_ERROR', 'Idempotency-Key limited to 200 characters.')
+  return value.trim()
+}
+
+const hashPayload = (body: unknown): string => createHash('sha256').update(JSON.stringify(body)).digest('hex')
 
 // ── Validators ────────────────────────────────────────────────────────────────
 
@@ -52,13 +62,17 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         u.display_name AS name,
         u.email,
         u.phone_whatsapp,
-        COUNT(a.id)::int AS active_assignments_count
+        COUNT(a.id) FILTER (WHERE a.id IS NOT NULL AND r.id IS NOT NULL)::int AS active_assignments_count
       FROM users u
       JOIN user_roles ur   ON ur.user_id = u.id
       JOIN roles role       ON role.id    = ur.role_id
       LEFT JOIN assignments a
         ON a.assignee_user_id = u.id
         AND a.ended_at IS NULL
+      LEFT JOIN requests r
+        ON r.id = a.request_id
+        AND r.status <> 'resolved'
+        AND r.deleted_at IS NULL
       WHERE u.organization_id = $1
         AND u.is_active        = true
         AND role.code          = 'internal_team_member'
@@ -84,7 +98,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
     const filters = extractFilters(request.query)
 
     // Dynamically build WHERE clause with numbered parameters
-    const conditions: string[] = ['r.organization_id = $1']
+    const conditions: string[] = ['r.organization_id = $1', 'r.deleted_at IS NULL']
     const params: unknown[]    = [user.organizationId]
     let   pidx = 2
 
@@ -201,12 +215,21 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         s.started_at,s.deadline_at,s.status AS sla_status,s.acknowledged_at,s.breached_at
       FROM requests r JOIN clients c ON c.id=r.client_id JOIN service_domains d ON d.id=r.service_domain_id
       LEFT JOIN assignments a ON a.request_id=r.id AND a.ended_at IS NULL LEFT JOIN users u2 ON u2.id=a.assignee_user_id
-      LEFT JOIN sla_records s ON s.assignment_id=a.id WHERE r.organization_id=$1 AND r.public_reference=$2`,
+      LEFT JOIN sla_records s ON s.assignment_id=a.id WHERE r.organization_id=$1 AND r.public_reference=$2 AND r.deleted_at IS NULL`,
       [user.organizationId, reference(request)])
     if (!result.rowCount) return reply.code(404).send({ error: { code: 'REQUEST_NOT_FOUND', message: 'Request not found.' } })
     const row = result.rows[0]
     const escalation = await pool.query(
-      `SELECT e.triggered_at,e.reason,u.display_name AS responsible_name FROM escalation_events e JOIN users u ON u.id=e.responsible_user_id JOIN requests r ON r.id=e.request_id WHERE r.organization_id=$1 AND r.public_reference=$2 ORDER BY e.triggered_at DESC LIMIT 1`,
+      `SELECT e.triggered_at, e.reason, u.display_name AS responsible_name
+       FROM escalation_events e
+       JOIN users u ON u.id = e.responsible_user_id
+       JOIN requests r ON r.id = e.request_id
+       JOIN assignments a ON a.id = e.assignment_id
+       WHERE r.organization_id = $1
+         AND r.public_reference = $2
+         AND a.ended_at IS NULL
+       ORDER BY e.triggered_at DESC
+       LIMIT 1`,
       [user.organizationId, reference(request)])
     return {
       request: {
@@ -325,80 +348,159 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
       throw new ApiError(422, 'VALIDATION_ERROR', 'Comment body must be 1–4000 characters.')
     }
     const { body } = parsed.data
+    const key = keyOf(request)
+    const route = request.url.split('?')[0]
+    const client = await pool.connect()
 
-    // Resolve the request and check existence
-    const reqRow = await pool.query(
-      `SELECT r.id FROM requests r WHERE r.organization_id = $1 AND r.public_reference = $2`,
-      [user.organizationId, reference(request)])
-    if (!reqRow.rowCount) {
-      return reply.code(404).send({ error: { code: 'REQUEST_NOT_FOUND', message: 'Request not found.' } })
-    }
-    const requestId = reqRow.rows[0].id
+    try {
+      await client.query('BEGIN')
 
-    // Specialists: must be current assignee to comment
-    if (user.role === 'internal_team_member') {
-      const assignmentCheck = await pool.query(
-        `SELECT 1 FROM assignments WHERE request_id = $1 AND assignee_user_id = $2 AND ended_at IS NULL`,
-        [requestId, user.id])
-      if (!assignmentCheck.rowCount) {
-        return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'You can only comment on tickets assigned to you.' } })
+      // Idempotency check if header is present
+      let idempotencyId: string | null = null
+      if (key) {
+        const payloadHash = hashPayload({ body: body.trim() })
+        const idemInsert = await client.query<{ id: string; response_status: number | null; response_body: unknown }>(
+          `INSERT INTO idempotency_keys(actor_id, organization_id, method, route, key, request_hash, expires_at)
+           VALUES ($1, $2, 'POST', $3, $4, $5, now() + interval '24 hours')
+           ON CONFLICT (organization_id, actor_id, method, route, key) DO NOTHING
+           RETURNING id, response_status, response_body`,
+          [user.id, user.organizationId, route, key, payloadHash]
+        )
+        if (idemInsert.rowCount === 0) {
+          const existing = await client.query<{ request_hash: string; response_status: number | null; response_body: unknown }>(
+            `SELECT request_hash, response_status, response_body
+             FROM idempotency_keys
+             WHERE organization_id = $1 AND actor_id = $2 AND method = 'POST' AND route = $3 AND key = $4
+             FOR UPDATE`,
+            [user.organizationId, user.id, route, key]
+          )
+          const row = existing.rows[0]
+          if (!row || row.request_hash !== payloadHash) {
+            throw new ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used with a different request.')
+          }
+          if (row.response_body && row.response_status) {
+            await client.query('COMMIT')
+            return reply.code(row.response_status).send(row.response_body)
+          }
+          throw new ApiError(409, 'IDEMPOTENCY_IN_PROGRESS', 'An identical comment is already being processed.')
+        }
+        idempotencyId = idemInsert.rows[0].id
       }
-    }
 
-    const inserted = await pool.query(`
-      INSERT INTO request_comments (organization_id, request_id, author_user_id, body, is_internal)
-      VALUES ($1, $2, $3, $4, true)
-      RETURNING id, body, created_at, updated_at
-    `, [user.organizationId, requestId, user.id, body.trim()])
+      // Resolve the request and check existence
+      const reqRow = await client.query(
+        `SELECT r.id FROM requests r WHERE r.organization_id = $1 AND r.public_reference = $2 AND r.deleted_at IS NULL`,
+        [user.organizationId, reference(request)]
+      )
+      if (!reqRow.rowCount) {
+        throw new ApiError(404, 'REQUEST_NOT_FOUND', 'Request not found.')
+      }
+      const requestId = reqRow.rows[0].id
 
-    const comment = inserted.rows[0]
-    return reply.code(201).send({
-      comment: {
-        id:        comment.id,
-        body:      comment.body,
-        createdAt: comment.created_at,
-        updatedAt: comment.updated_at,
-        author: {
-          id:       user.id,
-          name:     user.displayName,
-          role:     user.role,
-          initials: user.displayName.split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase(),
+      // Specialists: must be current assignee to comment
+      if (user.role === 'internal_team_member') {
+        const assignmentCheck = await client.query(
+          `SELECT 1 FROM assignments WHERE request_id = $1 AND assignee_user_id = $2 AND ended_at IS NULL`,
+          [requestId, user.id]
+        )
+        if (!assignmentCheck.rowCount) {
+          throw new ApiError(403, 'FORBIDDEN', 'You can only comment on tickets assigned to you.')
+        }
+      }
+
+      const inserted = await client.query(`
+        INSERT INTO request_comments (organization_id, request_id, author_user_id, body, is_internal)
+        VALUES ($1, $2, $3, $4, true)
+        RETURNING id, body, created_at, updated_at
+      `, [user.organizationId, requestId, user.id, body.trim()])
+
+      const comment = inserted.rows[0]
+      const responseData = {
+        comment: {
+          id:        comment.id,
+          body:      comment.body,
+          createdAt: comment.created_at,
+          updatedAt: comment.updated_at,
+          author: {
+            id:       user.id,
+            name:     user.displayName,
+            role:     user.role,
+            initials: user.displayName.split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase(),
+          },
         },
-      },
-    })
+      }
+
+      if (idempotencyId) {
+        await client.query(
+          'UPDATE idempotency_keys SET response_status = 201, response_body = $1 WHERE id = $2',
+          [JSON.stringify(responseData), idempotencyId]
+        )
+      }
+
+      await client.query('COMMIT')
+      return reply.code(201).send(responseData)
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined)
+      throw err
+    } finally {
+      client.release()
+    }
   })
 
   // ── DELETE /v1/pm/requests/:id ───────────────────────────────────────────────
+  // Soft deletes a resolved request and preserves all audit & compliance history.
   app.delete('/v1/pm/requests/:id', async (request, reply) => {
     const user = await authenticatePm(request, pool, config)
     if (user.role !== 'project_manager') {
       return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Only Project Managers can delete requests.' } })
     }
+
+    const bodyParsed = z.object({
+      expectedVersion: z.number().int().positive().optional(),
+    }).safeParse(request.body || {})
+    const expectedVersion = bodyParsed.success ? bodyParsed.data.expectedVersion : undefined
+
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
-      const targetReq = await client.query(
-        'SELECT id, status FROM requests WHERE organization_id=$1 AND public_reference=$2 FOR UPDATE',
-        [user.organizationId, reference(request)])
+      const targetReq = await client.query<{ id: string; status: string; version: number }>(
+        'SELECT id, status, version FROM requests WHERE organization_id=$1 AND public_reference=$2 AND deleted_at IS NULL FOR UPDATE',
+        [user.organizationId, reference(request)]
+      )
       if (!targetReq.rowCount) {
         await client.query('ROLLBACK')
         return reply.code(404).send({ error: { code: 'REQUEST_NOT_FOUND', message: 'Request not found.' } })
       }
-      const reqId = targetReq.rows[0].id
-      // Delete child records in dependency order
-      await client.query('DELETE FROM request_comments WHERE request_id=$1', [reqId])
-      await client.query('DELETE FROM escalation_events WHERE request_id=$1', [reqId])
-      await client.query('DELETE FROM audit_events WHERE request_id=$1', [reqId])
-      const assignmentIds = (await client.query('SELECT id FROM assignments WHERE request_id=$1', [reqId])).rows.map(r => r.id)
-      if (assignmentIds.length > 0) {
-        await client.query('DELETE FROM sla_records WHERE assignment_id = ANY($1)', [assignmentIds])
-        await client.query('DELETE FROM assignments WHERE request_id=$1', [reqId])
+      const reqRow = targetReq.rows[0]
+
+      if (expectedVersion !== undefined && reqRow.version !== expectedVersion) {
+        await client.query('ROLLBACK')
+        return reply.code(409).send({ error: { code: 'REQUEST_VERSION_CONFLICT', message: 'The request has changed. Refresh and retry.' } })
       }
-      await client.query('DELETE FROM requests WHERE id=$1', [reqId])
+
+      if (reqRow.status !== 'resolved') {
+        await client.query('ROLLBACK')
+        return reply.code(409).send({ error: { code: 'INVALID_STATE_TRANSITION', message: 'Only resolved requests can be deleted.' } })
+      }
+
+      // Soft delete: stamp deleted_at, bump version, and insert permanent audit record
+      await client.query('UPDATE requests SET deleted_at = now(), version = version + 1, updated_at = now() WHERE id = $1', [reqRow.id])
+      await client.query(
+        `INSERT INTO audit_events(organization_id, request_id, actor_user_id, actor_type, event_type, previous_state, new_state, metadata, correlation_id)
+         VALUES ($1, $2, $3, 'user', 'request_deleted', 'resolved', 'deleted', $4, $5)`,
+        [
+          user.organizationId,
+          reqRow.id,
+          user.id,
+          JSON.stringify({ reference: reference(request), softDeleted: true }),
+          request.id,
+        ]
+      )
+
       await client.query('COMMIT')
-      return { success: true, deletedReference: reference(request) }
+      return { success: true, deletedReference: reference(request), deletedAt: new Date().toISOString() }
     } catch (err) {
-      await client.query('ROLLBACK')
+      await client.query('ROLLBACK').catch(() => undefined)
       throw err
     } finally {
       client.release()

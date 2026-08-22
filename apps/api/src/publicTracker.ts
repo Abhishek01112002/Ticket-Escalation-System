@@ -324,13 +324,17 @@ export function registerPublicTrackerRoutes(
         FROM requests r
         JOIN service_domains sd ON sd.id = r.service_domain_id
         LEFT JOIN (
-          SELECT request_id, MIN(assigned_at) AS first_assigned_at
-          FROM   assignments
-          GROUP  BY request_id
+          SELECT a.request_id, MIN(a.assigned_at) AS first_assigned_at
+          FROM   assignments a
+          JOIN   users u ON u.id = a.assignee_user_id
+          JOIN   user_roles ur ON ur.user_id = u.id
+          JOIN   roles r_role ON r_role.id = ur.role_id
+          WHERE  r_role.code = 'internal_team_member'
+          GROUP  BY a.request_id
         ) fa ON fa.request_id = r.id
         LEFT JOIN assignments a  ON a.request_id = r.id AND a.ended_at IS NULL
         LEFT JOIN sla_records  s ON s.assignment_id = a.id
-        WHERE r.public_reference = $1
+        WHERE r.public_reference = $1 AND r.deleted_at IS NULL
         `,
         [ref],
       )

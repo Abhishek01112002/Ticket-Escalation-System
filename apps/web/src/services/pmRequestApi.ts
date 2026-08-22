@@ -26,6 +26,7 @@ type Summary = {
   urgency: Request['clientUrgency']
   status: Request['workflowStatus']
   requirement: string
+  created_at?: string
   client: { name: string; company: string }
   currentResponsibility: {
     id: string
@@ -77,7 +78,7 @@ function map(row: Summary): Request {
       email: '',
       phone: '',
     },
-    createdAt: '',
+    createdAt: row.created_at || '',
     workflowStatus: row.status,
     assignment: (row.currentResponsibility
       ? {
