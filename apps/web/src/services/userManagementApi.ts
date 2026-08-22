@@ -218,6 +218,7 @@ export async function deleteAuditLog(id: string): Promise<void> {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
+    body: JSON.stringify({}),
   })
 
   if (!res.ok) {
@@ -235,6 +236,7 @@ export async function purgeAuditLogs(options: { olderThanDays?: number; all?: bo
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
+    body: JSON.stringify({}),
   })
 
   if (!res.ok) {

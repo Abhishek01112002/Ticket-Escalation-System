@@ -44,22 +44,16 @@ export const startWorkRequest = (id: string, expectedVersion: number) =>
 export const resolveRequest = (id: string, expectedVersion: number) =>
   mutate(`/v1/requests/${encodeURIComponent(id)}/resolve`, { expectedVersion }, id)
 
-export async function deleteRequest(id: string): Promise<void> {
-  try {
-    const response = await fetch(`/v1/pm/requests/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: headers(),
-    })
-    if (!response.ok) {
-      const data = await response.json().catch(() => null)
-      throw new Error(data?.error?.message ?? 'Failed to delete request.')
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      removeLocalInMemoryRequest(id)
-      return
-    }
-    throw err
+export async function deleteRequest(id: string, expectedVersion?: number): Promise<void> {
+  const response = await fetch(`/v1/pm/requests/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: headers(),
+    credentials: 'include',
+    body: JSON.stringify(expectedVersion !== undefined ? { expectedVersion } : {}),
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    throw new Error(data?.error?.message ?? 'Failed to delete request.')
   }
 }
 

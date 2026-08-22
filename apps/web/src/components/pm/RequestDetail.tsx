@@ -72,7 +72,7 @@ export function RequestDetail({
   onAcknowledge: () => void
   onStartWork: () => void
   onResolve: () => void
-  onDelete?: (id: string) => void
+  onDelete?: (id: string, expectedVersion?: number) => void | Promise<void>
   onPostComment: (reference: string, body: string) => Promise<RequestComment>
   onOpenWhatsAppBriefing?: () => void
 }) {
@@ -404,14 +404,14 @@ export function RequestDetail({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (onDelete) onDelete(request.id)
+                onClick={async () => {
+                  if (onDelete) await onDelete(request.id, request.version)
                   setShowDeleteConfirm(false)
                 }}
                 disabled={busy}
-                className="px-4.5 py-2.5 rounded-xl bg-[#e11d48] hover:bg-[#be123c] text-white text-[13px] font-semibold shadow-xs transition-colors cursor-pointer"
+                className="px-4.5 py-2.5 rounded-xl bg-[#e11d48] hover:bg-[#be123c] text-white text-[13px] font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
-                Confirm Deletion
+                {busy ? 'Deleting...' : 'Confirm Deletion'}
               </button>
             </div>
           </div>

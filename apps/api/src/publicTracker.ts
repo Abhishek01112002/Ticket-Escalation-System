@@ -74,9 +74,9 @@ export interface PublicMilestone {
 
 interface MilestoneRow {
   created_at: Date
-  /** Earliest assignment ever created for this request — not just the current active one.
-   *  The client milestone is "a specialist was assigned", not "who the current owner is". */
-  first_assigned_at: Date | null
+  /** Current active specialist assignment time.
+   *  The public milestone "Specialist Assigned" shows the current specialist's assignment time. */
+  current_assigned_at: Date | null
   /** Populated from sla_records.acknowledged_at on the CURRENT active assignment. */
   acknowledged_at: Date | null
   resolved_at: Date | null
@@ -100,8 +100,8 @@ export function buildMilestones(row: MilestoneRow): PublicMilestone[] {
     {
       type: 'SPECIALIST_ASSIGNED',
       label: 'Specialist Assigned',
-      occurredAt: row.first_assigned_at?.toISOString() ?? null,
-      completed: row.first_assigned_at !== null,
+      occurredAt: row.current_assigned_at?.toISOString() ?? null,
+      completed: row.current_assigned_at !== null,
     },
     {
       type: 'ACKNOWLEDGED',
@@ -149,13 +149,13 @@ interface DtoRow extends MilestoneRow {
  * PM operations (priority changes, etc.) that are invisible to the client.
  */
 export function buildPublicDto(row: DtoRow): PublicTrackedRequest {
-  const hasAnyAssignment = row.first_assigned_at !== null
+  const hasAnyAssignment = row.current_assigned_at !== null
   const status = mapPublicStatus(row.db_status, hasAnyAssignment) // throws on unknown status
 
   // Derive lastUpdatedAt from the latest public-state transition only
   const publicTransitionTimestamps: Date[] = [
     row.created_at,
-    ...(row.first_assigned_at ? [row.first_assigned_at] : []),
+    ...(row.current_assigned_at ? [row.current_assigned_at] : []),
     ...(row.acknowledged_at ? [row.acknowledged_at] : []),
     ...(row.resolved_at ? [row.resolved_at] : []),
   ]
@@ -309,8 +309,8 @@ export function registerPublicTrackerRoutes(
 
       // ── DB lookup ────────────────────────────────────────────────────────────
       // Single query. No audit_events. No internal fields.
-      // first_assigned_at: earliest assignment ever, not just the current active
-      // one — the public milestone is "a specialist was assigned", not "who".
+      // current_assigned_at: current active specialist assignment time (not first ever)
+      // The public milestone "Specialist Assigned" shows the current specialist's assignment time.
       const result = await pool.query<DtoRow>(
         `
         SELECT
@@ -319,19 +319,19 @@ export function registerPublicTrackerRoutes(
           r.created_at,
           r.resolved_at,
           sd.name             AS service_domain_name,
-          fa.first_assigned_at,
+          ca.current_assigned_at,
           s.acknowledged_at
         FROM requests r
         JOIN service_domains sd ON sd.id = r.service_domain_id
         LEFT JOIN (
-          SELECT a.request_id, MIN(a.assigned_at) AS first_assigned_at
+          SELECT a.request_id, a.assigned_at AS current_assigned_at
           FROM   assignments a
           JOIN   users u ON u.id = a.assignee_user_id
           JOIN   user_roles ur ON ur.user_id = u.id
           JOIN   roles r_role ON r_role.id = ur.role_id
           WHERE  r_role.code = 'internal_team_member'
-          GROUP  BY a.request_id
-        ) fa ON fa.request_id = r.id
+            AND a.ended_at IS NULL
+        ) ca ON ca.request_id = r.id
         LEFT JOIN assignments a  ON a.request_id = r.id AND a.ended_at IS NULL
         LEFT JOIN sla_records  s ON s.assignment_id = a.id
         WHERE r.public_reference = $1 AND r.deleted_at IS NULL

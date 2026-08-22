@@ -103,13 +103,55 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       if (!target.rowCount) throw new ApiError(422, 'INVALID_ASSIGNEE', 'Select an active internal team member.')
       const currentAssignment = await client.query<any>('SELECT id FROM assignments WHERE request_id=$1 AND ended_at IS NULL FOR UPDATE', [row.id])
       const eventType = currentAssignment.rowCount ? 'reassigned' : 'assigned'
+      
+      // Capture old assignment and SLA details BEFORE mutating them for breach preservation
+      let oldAssignmentId: string | null = null
+      let oldSlaId: string | null = null
+      let oldSlaDeadline: Date | null = null
+      let oldSlaStatus: string | null = null
+      let oldAssigneeId: string | null = null
+      
       if (currentAssignment.rowCount) {
-        await client.query("UPDATE assignments SET ended_at=now(),end_reason='reassigned' WHERE id=$1", [currentAssignment.rows[0].id])
-        await client.query("UPDATE sla_records SET status='superseded',updated_at=now() WHERE assignment_id=$1 AND status IN ('active','breached')", [currentAssignment.rows[0].id])
+        oldAssignmentId = currentAssignment.rows[0].id
+        const oldSla = await client.query<any>('SELECT id, deadline_at, status, acknowledged_at FROM sla_records WHERE assignment_id = $1', [oldAssignmentId])
+        if (oldSla.rowCount) {
+          oldSlaId = oldSla.rows[0].id
+          oldSlaDeadline = oldSla.rows[0].deadline_at
+          oldSlaStatus = oldSla.rows[0].status
+          const oldAssignment = await client.query<any>('SELECT assignee_user_id FROM assignments WHERE id = $1', [oldAssignmentId])
+          if (oldAssignment.rowCount) oldAssigneeId = oldAssignment.rows[0].assignee_user_id
+        }
+        
+        await client.query("UPDATE assignments SET ended_at=now(),end_reason='reassigned' WHERE id=$1", [oldAssignmentId])
+        await client.query("UPDATE sla_records SET status='superseded',updated_at=now() WHERE assignment_id=$1 AND status IN ('active','breached')", [oldAssignmentId])
       }
+      
       const assignment = await client.query<any>('INSERT INTO assignments(request_id,assignee_user_id,assigned_by_user_id) VALUES($1,$2,$3) RETURNING id', [row.id, body.assigneeUserId, auth.id])
       await client.query("INSERT INTO sla_records(assignment_id,policy_code,duration_seconds,started_at,deadline_at) VALUES($1,'acknowledgement_24h',86400,now(),now()+interval '24 hours')", [assignment.rows[0].id])
       await client.query('UPDATE requests SET status=\'awaiting_acknowledgement\',version=version+1,updated_at=now() WHERE id=$1', [row.id])
+      
+      // Handle late reassignment - preserve breach accountability
+      if (currentAssignment.rowCount && oldSlaId && oldSlaDeadline && oldAssigneeId) {
+        const now = new Date()
+        if (now > oldSlaDeadline && oldSlaStatus === 'active') {
+          // Old SLA missed deadline - create breach and escalation for original specialist
+          await client.query("UPDATE sla_records SET breached_at=CURRENT_TIMESTAMP,status='breached',updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='active'", [oldSlaId])
+          
+          // Check idempotency to prevent duplicate escalation events
+          const idempotencyKey = `sla:${oldSlaId}:acknowledgement-breach`
+          const existingEscalation = await client.query('SELECT 1 FROM escalation_events WHERE idempotency_key=$1', [idempotencyKey])
+          if (!existingEscalation.rowCount) {
+            const oldRequest = await client.query<any>('SELECT id FROM requests WHERE id=$1', [row.id])
+            if (oldRequest.rowCount) {
+              await client.query('INSERT INTO escalation_events(request_id,assignment_id,sla_record_id,responsible_user_id,reason,policy_code,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7)', [row.id, oldAssignmentId, oldSlaId, oldAssigneeId, 'acknowledgement_sla_breached', 'acknowledgement_24h', idempotencyKey])
+              for (const event of ['sla_breached', 'escalation_triggered']) {
+                await client.query("INSERT INTO audit_events(organization_id,request_id,assignment_id,sla_record_id,actor_type,event_type,new_state,metadata) VALUES($1,$2,$3,$4,'system',$5,'breached',$6)", [auth.organizationId, row.id, oldAssignmentId, oldSlaId, event, JSON.stringify({ reason: 'acknowledgement_sla_breached' })])
+              }
+            }
+          }
+        }
+      }
+      
       await client.query('INSERT INTO audit_events(organization_id,request_id,assignment_id,actor_user_id,actor_type,event_type,previous_state,new_state,metadata,correlation_id) VALUES($1,$2,$3,$4,\'user\',$5,$6,\'awaiting_acknowledgement\',$7,$8)', [auth.organizationId, row.id, assignment.rows[0].id, auth.id, eventType, row.status, JSON.stringify({ assigneeUserId: body.assigneeUserId }), request.id])
       const response = await detail(client, auth.organizationId, String((request.params as any).id))
       await saveIdem(client, auth, 'POST', route, key, 200, response)
@@ -153,6 +195,11 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       let isLate = false
       if (action === 'acknowledge') {
         if (row.status !== 'awaiting_acknowledgement' || current.acknowledged_at) throw new ApiError(409, 'INVALID_STATE_TRANSITION', 'Request is not awaiting acknowledgement.')
+        
+        // Determine who is the accountable specialist for SLA purposes
+        // PM override: specialist remains accountable, PM is action actor
+        const accountableUserId = isOverride ? current.assignee_user_id : auth.id
+        
         const slaUpdate = await client.query<{ is_late: boolean }>(
           `UPDATE sla_records
            SET acknowledged_at = now(),
@@ -162,7 +209,7 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
                updated_at = now()
            WHERE id = $2
            RETURNING (now() > deadline_at) AS is_late`,
-          [auth.id, current.sla_id]
+          [accountableUserId, current.sla_id]
         )
         isLate = Boolean(slaUpdate.rows[0]?.is_late)
         next = 'acknowledged'
@@ -189,6 +236,7 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
           JSON.stringify({
             late: action === 'acknowledge' && isLate,
             override: isOverride,
+            acknowledged_by_pm: isOverride,
             originalAssigneeUserId: isOverride ? current.assignee_user_id : undefined,
           }),
           request.id,

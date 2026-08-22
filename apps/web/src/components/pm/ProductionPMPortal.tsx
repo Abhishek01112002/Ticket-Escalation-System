@@ -124,13 +124,13 @@ export function ProductionPMPortal({
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, expectedVersion?: number) => {
     setBusy(true)
     try {
-      await deleteRequest(id)
+      await deleteRequest(id, expectedVersion)
       setSelected(null)
       retry()
-      showToast(`Request ${id} deleted successfully.`)
+      showToast(`Request ${id} deleted successfully.`, 'success')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to delete request.', 'error')
     } finally {

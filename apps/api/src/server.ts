@@ -19,6 +19,20 @@ export function buildApp(pool: pg.Pool, config = loadConfig()): FastifyInstance 
     bodyLimit: 32 * 1024,
   })
 
+  // Tolerant JSON parser to gracefully handle empty JSON bodies on DELETE / bodyless POST
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (!body || (typeof body === 'string' && !body.trim())) {
+      return done(null, {})
+    }
+    try {
+      const json = JSON.parse(body as string)
+      done(null, json)
+    } catch (err: any) {
+      err.statusCode = 400
+      done(err, undefined)
+    }
+  })
+
   pool.on('error', (error) => logger.error('Database pool connection error', error))
 
   const isAllowedOrigin = (origin: string | undefined): boolean => {

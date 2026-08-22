@@ -449,10 +449,10 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
 
   // ── DELETE /v1/pm/requests/:id ───────────────────────────────────────────────
   // Soft deletes a resolved request and preserves all audit & compliance history.
-  app.delete('/v1/pm/requests/:id', async (request, reply) => {
+app.delete('/v1/pm/requests/:id', async (request, reply) => {
     const user = await authenticatePm(request, pool, config)
     if (user.role !== 'project_manager') {
-      return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Only Project Managers can delete requests.' } })
+      return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Only Project Managers can archive requests.' } })
     }
 
     const bodyParsed = z.object({
@@ -483,7 +483,7 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
         return reply.code(409).send({ error: { code: 'INVALID_STATE_TRANSITION', message: 'Only resolved requests can be deleted.' } })
       }
 
-      // Soft delete: stamp deleted_at, bump version, and insert permanent audit record
+      // Soft archive: stamp deleted_at, bump version, and insert permanent audit record
       await client.query('UPDATE requests SET deleted_at = now(), version = version + 1, updated_at = now() WHERE id = $1', [reqRow.id])
 
       // End any active assignment for this request and supersede its SLA
@@ -493,29 +493,30 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
       )
       if (assignmentResult.rows.length > 0) {
         const assignmentIds = assignmentResult.rows.map((r) => r.id)
-        const assignmentIdList = assignmentIds.join(',')
         await client.query(
-          `UPDATE assignments SET ended_at = now(), end_reason = 'request_deleted' WHERE id IN (${assignmentIdList})`
+          `UPDATE assignments SET ended_at = now(), end_reason = 'request_archived' WHERE id = ANY($1::uuid[])`,
+          [assignmentIds]
         )
         await client.query(
-          `UPDATE sla_records SET status = 'superseded', updated_at = now() WHERE assignment_id IN (${assignmentIdList}) AND status IN ('active', 'breached')`
+          `UPDATE sla_records SET status = 'superseded', updated_at = now() WHERE assignment_id = ANY($1::uuid[]) AND status IN ('active', 'breached')`,
+          [assignmentIds]
         )
       }
 
       await client.query(
         `INSERT INTO audit_events(organization_id, request_id, actor_user_id, actor_type, event_type, previous_state, new_state, metadata, correlation_id)
-         VALUES ($1, $2, $3, 'user', 'request_deleted', 'resolved', 'deleted', $4, $5)`,
+         VALUES ($1, $2, $3, 'user', 'request_archived', 'resolved', 'archived', $4, $5)`,
         [
           user.organizationId,
           reqRow.id,
           user.id,
-          JSON.stringify({ reference: reference(request), softDeleted: true }),
+          JSON.stringify({ reference: reference(request), softArchived: true }),
           request.id,
         ]
       )
 
       await client.query('COMMIT')
-      return { success: true, deletedReference: reference(request), deletedAt: new Date().toISOString() }
+      return { success: true, archivedReference: reference(request), archivedAt: new Date().toISOString() }
     } catch (err) {
       await client.query('ROLLBACK').catch(() => undefined)
       throw err

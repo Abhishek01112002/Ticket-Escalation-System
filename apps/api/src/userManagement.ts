@@ -582,19 +582,38 @@ export function registerUserManagementRoutes(
               throw new ApiError(400, 'INVALID_REASSIGNEE', 'Selected reassignment specialist is invalid or inactive.')
             }
 
-            // End existing assignments
+            // End existing assignments and supersede their SLAs
             await client.query(
               "UPDATE assignments SET ended_at = now(), end_reason = 'reassigned_on_member_deactivation' WHERE assignee_user_id = $1 AND ended_at IS NULL",
               [targetUserId]
             )
+            await client.query(
+              "UPDATE sla_records SET status = 'superseded', updated_at = now() WHERE assignment_id IN (SELECT id FROM assignments WHERE assignee_user_id = $1 AND ended_at IS NOT NULL AND end_reason = 'reassigned_on_member_deactivation') AND status IN ('active', 'acknowledged')",
+              [targetUserId]
+            )
 
-            // Create new assignments for each request
+            // Create new assignments and SLAs for each request
             for (const item of openAssignments.rows) {
-              await client.query(
-                'INSERT INTO assignments (request_id, assignee_user_id, assigned_by_user_id) VALUES ($1, $2, $3)',
+              const assignmentRes = await client.query(
+                'INSERT INTO assignments (request_id, assignee_user_id, assigned_by_user_id) VALUES ($1, $2, $3) RETURNING id',
                 [item.request_id, reassignToUserId, actor.id]
               )
+              const newAssignmentId = assignmentRes.rows[0].id
+              await client.query(
+                "INSERT INTO sla_records(assignment_id, policy_code, duration_seconds, started_at, deadline_at) VALUES ($1, 'acknowledgement_24h', 86400, now(), now() + interval '24 hours')",
+                [newAssignmentId]
+              )
             }
+
+            // Reset request status to awaiting_acknowledgement for all reassigned requests
+            const requestIds = openAssignments.rows.map((r) => r.request_id)
+            await client.query(
+              `UPDATE requests
+               SET status = 'awaiting_acknowledgement', version = version + 1, updated_at = now()
+               WHERE id = ANY($1::uuid[]) AND status IN ('awaiting_acknowledgement', 'acknowledged', 'in_progress')`,
+              [requestIds]
+            )
+
             rebalanceSummary = { unassignedCount: openAssignments.rowCount, reassignedToUserId: reassignToUserId }
           } else {
             // Unassign all open tickets back to triage queue
