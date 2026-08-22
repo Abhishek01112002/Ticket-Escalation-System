@@ -41,7 +41,7 @@ export function WhatsAppDispatchDrawer({
       clientCompany: request.client?.company || 'Client Organization',
       serviceDomain: request.serviceDomain,
       urgency: request.clientUrgency,
-      requirement: request.subject || request.description,
+      requirement: (request as any).requirement || request.subject || request.description || '',
       deadlineAt: request.assignment?.acknowledgementDeadline || request.sla?.deadlineAt,
       customNote,
     })

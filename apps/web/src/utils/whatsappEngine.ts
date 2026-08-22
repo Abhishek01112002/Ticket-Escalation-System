@@ -34,17 +34,18 @@ export function formatPhoneDisplay(phone?: string | null): string {
  * Generates a high-clarity WhatsApp Markdown task briefing.
  */
 export function generateWhatsAppTaskMessage(input: TaskBriefingInput): string {
-  const domainLabel = SERVICE_DOMAIN_LABELS[input.serviceDomain as keyof typeof SERVICE_DOMAIN_LABELS] || input.serviceDomain
+  const domainLabel = SERVICE_DOMAIN_LABELS[input.serviceDomain as keyof typeof SERVICE_DOMAIN_LABELS] || input.serviceDomain || 'General Requirement'
   const urgencyLabel = (input.urgency || 'standard').replace(/_/g, ' ').toUpperCase()
   const deadlineText = input.deadlineAt ? formatDateTime(input.deadlineAt) : 'Within 24 Hours'
-  const trimmedRequirement = input.requirement.length > 280
-    ? `${input.requirement.slice(0, 277)}...`
-    : input.requirement
+  const reqText = (input.requirement || '').trim()
+  const trimmedRequirement = reqText.length > 280
+    ? `${reqText.slice(0, 277)}...`
+    : (reqText || 'Client Project Requirement')
 
   let msg = `*NVARA MEDIA — TASK ALLOCATION*\n`
   msg += `━━━━━━━━━━━━━━━━━━━━━━\n`
-  msg += `*Ticket Reference:* \`${input.reference}\`\n`
-  msg += `*Client:* ${input.clientCompany}${input.clientName ? ` (${input.clientName})` : ''}\n`
+  msg += `*Ticket Reference:* \`${input.reference || 'REF-TICKET'}\`\n`
+  msg += `*Client:* ${input.clientCompany || 'Client Organization'}${input.clientName ? ` (${input.clientName})` : ''}\n`
   msg += `*Service Area:* ${domainLabel}\n`
   msg += `*Urgency:* ${urgencyLabel}\n`
   msg += `*SLA Window:* 24h Acknowledgement\n`

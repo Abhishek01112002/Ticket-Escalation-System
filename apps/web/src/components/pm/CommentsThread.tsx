@@ -72,7 +72,7 @@ export function CommentsThread({
   /** Optional: pull fresh comments from the server. Called on mount. */
   onLoadMore?: (reference: string) => Promise<RequestComment[]>
 }) {
-  const [comments, setComments]   = useState<RequestComment[]>(initialComments)
+  const [comments, setComments]   = useState<RequestComment[]>(Array.isArray(initialComments) ? initialComments : [])
   const [draft, setDraft]         = useState('')
   const [busy, setBusy]           = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -80,14 +80,16 @@ export function CommentsThread({
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const charCount = draft.length
+  const charCount = (draft || '').length
   const maxChars  = 4000
   const canPost   = charCount >= 1 && charCount <= maxChars && !busy
 
   // Load fresh comments on mount
   useEffect(() => {
     if (!onLoadMore) return
-    onLoadMore(ticketReference).then(setComments).catch(err => {
+    onLoadMore(ticketReference).then((data) => {
+      setComments(Array.isArray(data) ? data : [])
+    }).catch(err => {
       setLoadError(err instanceof Error ? err.message : 'Failed to load comments.')
     })
   }, [ticketReference]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -95,7 +97,7 @@ export function CommentsThread({
   // Auto-scroll to bottom when comments change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [comments.length])
+  }, [(comments || []).length])
 
   // Cmd/Ctrl+Enter to submit
   useEffect(() => {
@@ -176,7 +178,7 @@ export function CommentsThread({
             </svg>
             <span>Internal Only</span>
           </span>
-          {comments.length > 0 && (
+          {(comments || []).length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
               {comments.length}
             </span>
@@ -197,7 +199,7 @@ export function CommentsThread({
       )}
 
       {/* ── Comment Feed ─────────────────────────────────────────────────────── */}
-      {comments.length === 0 && !loadError ? (
+      {(!comments || comments.length === 0) && !loadError ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <div className="w-10 h-10 rounded-full bg-[#f8fafc] border border-[#e2e8f0] flex items-center justify-center text-[#94a3b8]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
