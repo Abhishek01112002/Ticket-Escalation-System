@@ -5,28 +5,109 @@ interface PermissionsMatrixModalProps {
   onClose: () => void
 }
 
-const PERMISSIONS = [
+interface PermissionItem {
+  name: string
+  specialist: string
+  pm: string
+  desc: string
+}
+
+const PERMISSIONS: { category: string; items: PermissionItem[] }[] = [
   {
     category: 'Operations Queue & Triage',
     items: [
-      { name: 'View Operations Queue', pm: true, specialist: true, desc: 'View incoming and in-progress client requests' },
-      { name: 'Acknowledge Request SLA', pm: true, specialist: true, desc: 'Acknowledge request within the designated SLA window' },
-      { name: 'Resolve Request', pm: true, specialist: true, desc: 'Provide resolution notes and mark request resolved' },
-      { name: 'Assign & Reassign Specialists', pm: true, specialist: false, desc: 'Assign tickets to specialists or rebalance workload' },
-      { name: 'Manual SLA Policy Overrides', pm: true, specialist: false, desc: 'Override SLA escalation rules on high-priority tickets' },
+      {
+        name: 'View Operations Queue',
+        specialist: '✓',
+        pm: '✓',
+        desc: 'View incoming and in-progress client requests within organization',
+      },
+      {
+        name: 'Acknowledge Request SLA',
+        specialist: 'Assigned only ✓',
+        pm: '✓ Direct + Override',
+        desc: 'Acknowledge request receipt within the 24-hour SLA window',
+      },
+      {
+        name: 'Resolve Request',
+        specialist: 'Assigned only ✓',
+        pm: '✓ Direct + Override',
+        desc: 'Provide resolution notes and mark active deliverables resolved',
+      },
+      {
+        name: 'Assign & Reassign Specialists',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Assign tickets to specialists or rebalance workload across team',
+      },
+      {
+        name: 'Operational Workflow Override',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Perform permitted workflow actions on behalf of the assigned specialist',
+      },
     ],
   },
   {
     category: 'Team & Identity Administration',
     items: [
-      { name: 'View Team Directory', pm: true, specialist: true, desc: 'View team members, status, and workload metrics' },
-      { name: 'Invite & Onboard Team Members', pm: true, specialist: false, desc: 'Generate secure invite links or temporary credentials' },
-      { name: 'Change Roles & Permissions', pm: true, specialist: false, desc: 'Promote specialists or demote administrators' },
-      { name: 'Deactivate / Reactivate Accounts', pm: true, specialist: false, desc: 'Deactivate members with automatic ticket rebalancing' },
-      { name: 'View Compliance Audit Trail', pm: true, specialist: false, desc: 'Access immutable organizational audit timeline' },
+      {
+        name: 'View Team Directory & Workload',
+        specialist: '✓ Read-only',
+        pm: '✓',
+        desc: 'View organization team members, availability, and SLA metrics',
+      },
+      {
+        name: 'Invite & Onboard Team Members',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Generate 7-day cryptographic invite links or provision credentials',
+      },
+      {
+        name: 'Change Roles & Permissions',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Promote specialists or assign administrative roles with self-lockout protection',
+      },
+      {
+        name: 'Deactivate / Reactivate Accounts',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Deactivate members with PM-directed ticket reassignment and immediate session revocation',
+      },
+      {
+        name: 'View Compliance Audit Trail',
+        specialist: '—',
+        pm: '✓',
+        desc: 'Access immutable organizational audit timeline with search and retention controls',
+      },
     ],
   },
 ]
+
+function renderBadge(text: string, isPmCol: boolean) {
+  if (text === '—') {
+    return (
+      <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#f1f5f9] text-[#94a3b8] font-bold text-xs">
+        —
+      </span>
+    )
+  }
+
+  if (isPmCol) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#eef2ff] text-[#4338ca] border border-[#c7d2fe] font-semibold text-[11px]">
+        {text}
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#ecfdf5] text-[#065f46] border border-[#d1fae5] font-semibold text-[11px]">
+      {text}
+    </span>
+  )
+}
 
 export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
   isOpen,
@@ -35,9 +116,9 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
       <div
-        className="w-full max-w-2xl bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-up"
         role="dialog"
         aria-labelledby="matrix-title"
       >
@@ -48,7 +129,7 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
               Role &amp; Permissions Matrix
             </h2>
             <p className="text-[12px] text-[#64748b] mt-0.5">
-              Access control and privilege boundaries across Nvara Operations.
+              Verified access control and privilege boundaries across Nvara Operations.
             </p>
           </div>
           <button
@@ -73,8 +154,8 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
                   <thead className="bg-[#f8fafc] text-[#475569] border-b border-[#e2e8f0] font-semibold text-[11.5px]">
                     <tr>
                       <th className="p-3">Capability</th>
-                      <th className="p-3 text-center w-28">Specialist</th>
-                      <th className="p-3 text-center w-32">Project Manager</th>
+                      <th className="p-3 text-center w-36">Specialist</th>
+                      <th className="p-3 text-center w-40">Project Manager</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#e2e8f0] text-[#334155]">
@@ -85,26 +166,10 @@ export const PermissionsMatrixModal: React.FC<PermissionsMatrixModalProps> = ({
                           <span className="text-[11px] text-[#64748b]">{item.desc}</span>
                         </td>
                         <td className="p-3 text-center">
-                          {item.specialist ? (
-                            <span className="inline-block w-5 h-5 rounded-full bg-[#ecfdf5] text-[#065f46] text-center leading-5 font-bold border border-[#d1fae5]">
-                              ✓
-                            </span>
-                          ) : (
-                            <span className="inline-block w-5 h-5 rounded-full bg-[#f1f5f9] text-[#94a3b8] text-center leading-5">
-                              —
-                            </span>
-                          )}
+                          {renderBadge(item.specialist, false)}
                         </td>
                         <td className="p-3 text-center">
-                          {item.pm ? (
-                            <span className="inline-block w-5 h-5 rounded-full bg-[#eef2ff] text-[#4338ca] text-center leading-5 font-bold border border-[#c7d2fe]">
-                              ✓
-                            </span>
-                          ) : (
-                            <span className="inline-block w-5 h-5 rounded-full bg-[#f1f5f9] text-[#94a3b8] text-center leading-5">
-                              —
-                            </span>
-                          )}
+                          {renderBadge(item.pm, true)}
                         </td>
                       </tr>
                     ))}

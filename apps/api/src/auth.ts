@@ -88,21 +88,24 @@ export async function authenticatePm(
       JOIN organizations o ON o.id = u.organization_id
       JOIN user_roles ur ON ur.user_id = u.id
       JOIN roles r ON r.id = ur.role_id
-      WHERE u.auth_subject = $1`,
+      WHERE u.auth_subject = $1
+        AND r.code IN ('project_manager', 'internal_team_member')
+        AND u.is_active = true`,
       [subject]
     )
 
-    if (result.rowCount === 1) {
-      const row = result.rows[0]
-      if (row.isActive && ['project_manager', 'internal_team_member'].includes(row.role)) {
-        return {
-          id: row.id,
-          organizationId: row.organizationId,
-          displayName: row.displayName,
-          email: row.email,
-          role: row.role,
-          organizationName: row.organizationName,
-        }
+    if (result.rows.length >= 1) {
+      // Pick highest privilege role: project_manager > internal_team_member
+      const roles = result.rows.map((r) => r.role)
+      const role = roles.includes('project_manager') ? 'project_manager' : 'internal_team_member'
+      const row = result.rows.find((r) => r.role === role)!
+      return {
+        id: row.id,
+        organizationId: row.organizationId,
+        displayName: row.displayName,
+        email: row.email,
+        role,
+        organizationName: row.organizationName,
       }
     }
   }
@@ -137,17 +140,19 @@ export async function authenticatePm(
       JOIN roles r ON r.id = ur.role_id
       WHERE s.session_token_hash = $1
         AND s.revoked_at IS NULL
-        AND s.expires_at > now()`,
+        AND s.expires_at > now()
+        AND r.code IN ('project_manager', 'internal_team_member')
+        AND u.is_active = true`,
       [tokenHash]
     )
 
-    if (result.rowCount === 1) {
-      const row = result.rows[0]
-      if (!row.isActive || !['project_manager', 'internal_team_member'].includes(row.role)) {
-        throw new ApiError(403, 'FORBIDDEN', 'Access denied. Account is inactive or unauthorized.')
-      }
+    if (result.rows.length >= 1) {
+      // Pick highest privilege role: project_manager > internal_team_member
+      const roles = result.rows.map((r) => r.role)
+      const role = roles.includes('project_manager') ? 'project_manager' : 'internal_team_member'
+      const row = result.rows.find((r) => r.role === role)!
 
-      if (request.url.includes('/assignments') && row.role !== 'project_manager') {
+      if (request.url.includes('/assignments') && role !== 'project_manager') {
         throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required.')
       }
 
@@ -159,7 +164,7 @@ export async function authenticatePm(
         organizationId: row.organizationId,
         displayName: row.displayName,
         email: row.email,
-        role: row.role,
+        role,
         organizationName: row.organizationName,
         sessionId: row.sessionId,
       }
@@ -666,7 +671,7 @@ export function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, config: 
       )
 
       // Dispatch transactional email
-      const resetUrl = `http://127.0.0.1:5173/reset-password?token=${rawToken}`
+      const resetUrl = `${config.WEB_ORIGIN.replace(/\/$/, '')}/reset-password?token=${rawToken}`
       await emailService.sendEmail(
         emailService.buildPasswordResetEmail({
           to: email,

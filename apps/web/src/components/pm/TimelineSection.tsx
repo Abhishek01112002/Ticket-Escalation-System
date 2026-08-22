@@ -79,11 +79,11 @@ function getHumanEventCopy(event: TimelineEvent): { title: string; description: 
 }
 
 export function TimelineSection({
-  timeline,
+  timeline = [],
 }: {
-  timeline: TimelineEvent[]
+  timeline?: TimelineEvent[]
 }) {
-  const sorted = [...timeline].sort(
+  const sorted = [...(timeline || [])].sort(
     (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
   )
 

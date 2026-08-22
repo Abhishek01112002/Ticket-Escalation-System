@@ -104,11 +104,11 @@ export function ProductionPMPortal({
     }
   }
 
-  const run = async (action: () => Promise<DetailRequest>, successMsg: string) => {
+  const run = async (action: () => Promise<Request>, successMsg: string) => {
     setBusy(true)
     try {
       const updated = await action()
-      setSelected(updated)
+      setSelected(updated as DetailRequest)
       retry()
       showToast(successMsg)
     } catch (err) {
@@ -146,32 +146,6 @@ export function ProductionPMPortal({
     try {
       await assignRequest(reference, assigneeUserId, expectedVersion)
       showToast('Specialist assigned successfully.', 'success')
-      const assignedMember = members.find((m) => m.id === assigneeUserId)
-      const targetReq = requests.find((r) => r.id === reference)
-      if (assignedMember && targetReq) {
-        setWhatsappDispatchPayload({
-          request: {
-            ...targetReq,
-            assignment: {
-              ...targetReq.assignment,
-              assignee: {
-                id: assignedMember.id,
-                name: assignedMember.name,
-                initials: assignedMember.name.slice(0, 2),
-                role: 'team_member',
-                team: 'Specialist team',
-                phoneWhatsapp: assignedMember.phoneWhatsapp,
-              },
-            },
-          },
-          specialist: {
-            id: assignedMember.id,
-            name: assignedMember.name,
-            email: assignedMember.email,
-            phoneWhatsapp: assignedMember.phoneWhatsapp,
-          },
-        })
-      }
       retry()
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to assign specialist.', 'error')
@@ -250,26 +224,24 @@ export function ProductionPMPortal({
             {isPM ? 'Operations Queue' : 'My Queue'}
           </NavItem>
 
-          {isPM && (
-            <NavItem
-              active={currentView === 'team'}
-              icon={
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              }
-              onClick={() => {
-                setCurrentView('team')
-                setSelected(null)
-                setMobileNavOpen(false)
-              }}
-            >
-              Team Members
-            </NavItem>
-          )}
+          <NavItem
+            active={currentView === 'team'}
+            icon={
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            }
+            onClick={() => {
+              setCurrentView('team')
+              setSelected(null)
+              setMobileNavOpen(false)
+            }}
+          >
+            {isPM ? 'Team Members' : 'Team Directory'}
+          </NavItem>
         </nav>
       </div>
 
@@ -486,22 +458,7 @@ export function ProductionPMPortal({
               onBack={handleBack}
               onAssign={(assigneeUserId) =>
                 run(
-                  async () => {
-                    const updated = await assignRequest(selected.id, assigneeUserId, selected.version)
-                    const assignedMember = members.find((m) => m.id === assigneeUserId)
-                    if (assignedMember) {
-                      setWhatsappDispatchPayload({
-                        request: updated,
-                        specialist: {
-                          id: assignedMember.id,
-                          name: assignedMember.name,
-                          email: assignedMember.email,
-                          phoneWhatsapp: assignedMember.phoneWhatsapp,
-                        },
-                      })
-                    }
-                    return updated
-                  },
+                  () => assignRequest(selected.id, assigneeUserId, selected.version),
                   'Assignment saved. 24-hour acknowledgement window started.',
                 )
               }

@@ -8,6 +8,7 @@ import {
 interface MemberDetailDrawerProps {
   member: OrganizationUser | null
   isOpen: boolean
+  isPm?: boolean
   onClose: () => void
   onRoleChange: (member: OrganizationUser, newRole: 'project_manager' | 'internal_team_member') => void
   onDeactivateClick: (member: OrganizationUser) => void
@@ -17,6 +18,7 @@ interface MemberDetailDrawerProps {
 export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
   member,
   isOpen,
+  isPm = true,
   onClose,
   onRoleChange,
   onDeactivateClick,
@@ -180,55 +182,57 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
             </div>
 
             {/* Quick Actions Hub */}
-            <div>
-              <h3 className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider mb-3">
-                Administrative Controls
-              </h3>
-              <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12.5px] font-semibold text-[#334155]">Role Privilege</span>
-                  <select
-                    value={member.role}
-                    onChange={(e) =>
-                      onRoleChange(member, e.target.value as 'project_manager' | 'internal_team_member')
-                    }
-                    className="bg-white border border-[#cbd5e1] text-[12px] font-semibold text-[#0f172a] rounded-lg px-2.5 py-1.5 focus:border-[#0f172a] focus:outline-none"
-                    aria-label={`Change role for ${member.displayName}`}
-                  >
-                    <option value="internal_team_member">Operations Specialist</option>
-                    <option value="project_manager">Project Manager</option>
-                  </select>
-                </div>
-
-                <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-between">
-                  <div>
-                    <span className="text-[12.5px] font-semibold text-[#334155] block">Account Status</span>
-                    <span className="text-[11px] text-[#64748b]">
-                      {member.isActive
-                        ? 'Active member can sign in and receive tasks'
-                        : 'Deactivated account cannot sign in'}
-                    </span>
+            {isPm && (
+              <div>
+                <h3 className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider mb-3">
+                  Administrative Controls
+                </h3>
+                <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12.5px] font-semibold text-[#334155]">Role Privilege</span>
+                    <select
+                      value={member.role}
+                      onChange={(e) =>
+                        onRoleChange(member, e.target.value as 'project_manager' | 'internal_team_member')
+                      }
+                      className="bg-white border border-[#cbd5e1] text-[12px] font-semibold text-[#0f172a] rounded-lg px-2.5 py-1.5 focus:border-[#0f172a] focus:outline-none"
+                      aria-label={`Change role for ${member.displayName}`}
+                    >
+                      <option value="internal_team_member">Operations Specialist</option>
+                      <option value="project_manager">Project Manager</option>
+                    </select>
                   </div>
-                  {member.isActive ? (
-                    <button
-                      type="button"
-                      onClick={() => onDeactivateClick(member)}
-                      className="px-3 py-1.5 bg-[#fff1f2] text-[#e11d48] border border-[#ffe4e6] rounded-lg text-[12px] font-bold hover:bg-[#ffe4e6] transition-colors cursor-pointer"
-                    >
-                      Deactivate
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onReactivateClick(member)}
-                      className="px-3 py-1.5 bg-[#ecfdf5] text-[#059669] border border-[#d1fae5] rounded-lg text-[12px] font-bold hover:bg-[#d1fae5] transition-colors cursor-pointer"
-                    >
-                      Reactivate
-                    </button>
-                  )}
+
+                  <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-between">
+                    <div>
+                      <span className="text-[12.5px] font-semibold text-[#334155] block">Account Status</span>
+                      <span className="text-[11px] text-[#64748b]">
+                        {member.isActive
+                          ? 'Active member can sign in and receive tasks'
+                          : 'Deactivated account cannot sign in'}
+                      </span>
+                    </div>
+                    {member.isActive ? (
+                      <button
+                        type="button"
+                        onClick={() => onDeactivateClick(member)}
+                        className="px-3 py-1.5 bg-[#fff1f2] text-[#e11d48] border border-[#ffe4e6] rounded-lg text-[12px] font-bold hover:bg-[#ffe4e6] transition-colors cursor-pointer"
+                      >
+                        Deactivate
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onReactivateClick(member)}
+                        className="px-3 py-1.5 bg-[#ecfdf5] text-[#059669] border border-[#d1fae5] rounded-lg text-[12px] font-bold hover:bg-[#d1fae5] transition-colors cursor-pointer"
+                      >
+                        Reactivate
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Recent Ticket Activity */}
             <div>

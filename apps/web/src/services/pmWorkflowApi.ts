@@ -6,7 +6,7 @@ const headers = (): Record<string, string> => ({
   'Content-Type': 'application/json',
 })
 
-async function mutate(path: string, body: { expectedVersion: number; assigneeUserId?: string }) {
+async function mutate(path: string, body: { expectedVersion: number; assigneeUserId?: string }, id: string) {
   const key = crypto.randomUUID()
   try {
     const response = await fetch(path, {
@@ -21,11 +21,11 @@ async function mutate(path: string, body: { expectedVersion: number; assigneeUse
       error.status = response.status
       throw error
     }
-    return (await response.json()).request
+    // Return full mapped Request domain object with timeline and associations
+    return await getPmRequest(id)
   } catch (err) {
     if (import.meta.env.DEV) {
-      const reqId = path.split('/')[3]
-      const current = await getPmRequest(reqId)
+      const current = await getPmRequest(id)
       return { ...current, version: (current.version ?? 1) + 1 }
     }
     throw err
@@ -33,16 +33,16 @@ async function mutate(path: string, body: { expectedVersion: number; assigneeUse
 }
 
 export const assignRequest = (id: string, assigneeUserId: string, expectedVersion: number) =>
-  mutate(`/v1/pm/requests/${encodeURIComponent(id)}/assignments`, { assigneeUserId, expectedVersion })
+  mutate(`/v1/pm/requests/${encodeURIComponent(id)}/assignments`, { assigneeUserId, expectedVersion }, id)
 
 export const acknowledgeRequest = (id: string, expectedVersion: number) =>
-  mutate(`/v1/requests/${encodeURIComponent(id)}/acknowledge`, { expectedVersion })
+  mutate(`/v1/requests/${encodeURIComponent(id)}/acknowledge`, { expectedVersion }, id)
 
 export const startWorkRequest = (id: string, expectedVersion: number) =>
-  mutate(`/v1/requests/${encodeURIComponent(id)}/start-work`, { expectedVersion })
+  mutate(`/v1/requests/${encodeURIComponent(id)}/start-work`, { expectedVersion }, id)
 
 export const resolveRequest = (id: string, expectedVersion: number) =>
-  mutate(`/v1/requests/${encodeURIComponent(id)}/resolve`, { expectedVersion })
+  mutate(`/v1/requests/${encodeURIComponent(id)}/resolve`, { expectedVersion }, id)
 
 export async function deleteRequest(id: string): Promise<void> {
   try {

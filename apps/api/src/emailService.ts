@@ -3,10 +3,12 @@
  *
  * Tier-1 Production Email Abstraction:
  * - Zero-cost development & testing transport (in-memory + structured logging)
- * - Extensible transport for SMTP / Resend / AWS SES in production
+ * - Pluggable transport for SMTP / Resend / AWS SES in production
  * - Generates high-contrast, accessible HTML + RFC-compliant Plain Text fallbacks
  * - Embedded anti-phishing warnings and TTL expiry notices
  */
+
+import { createTransport, type Transporter, type SendMailOptions } from 'nodemailer'
 
 export interface TransactionalEmail {
   to: string
@@ -16,49 +18,125 @@ export interface TransactionalEmail {
   metadata?: Record<string, unknown>
 }
 
-class EmailService {
+export interface EmailTransport {
+  send(email: TransactionalEmail): Promise<{ id: string; success: boolean }>
+}
+
+class DevTransport implements EmailTransport {
   private inMemoryOutbox: TransactionalEmail[] = []
 
-  /**
-   * Send transactional email
-   */
-  async sendEmail(email: TransactionalEmail): Promise<{ id: string; success: boolean }> {
+  async send(email: TransactionalEmail): Promise<{ id: string; success: boolean }> {
     const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
-    // In dev / test, record in memory outbox
     this.inMemoryOutbox.push(email)
     if (this.inMemoryOutbox.length > 100) {
       this.inMemoryOutbox.shift()
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n[Transactional Email Dispatch]`)
-      console.log(`To: ${email.to}`)
-      console.log(`Subject: ${email.subject}`)
-      console.log(`Metadata:`, email.metadata || {})
-      console.log(`───────────────────────────────────────────\n`)
-    }
+    console.log(`\n[Transactional Email Dispatch]`)
+    console.log(`To: ${email.to}`)
+    console.log(`Subject: ${email.subject}`)
+    console.log(`Metadata:`, email.metadata || {})
+    console.log(`───────────────────────────────────────────\n`)
 
     return { id, success: true }
   }
 
-  /**
-   * Get recently dispatched emails (useful for unit & integration testing)
-   */
   getOutbox(): TransactionalEmail[] {
     return [...this.inMemoryOutbox]
   }
 
-  /**
-   * Clear outbox
-   */
   clearOutbox(): void {
     this.inMemoryOutbox = []
   }
+}
 
-  /**
-   * Build Team Member Invitation Email
-   */
+class SmtpTransport implements EmailTransport {
+  private transporter: Transporter
+
+  constructor(private config: {
+    host: string
+    port: number
+    secure: boolean
+    auth: { user: string; pass: string }
+    from: string
+  }) {
+    this.transporter = createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: config.auth,
+    })
+  }
+
+  async send(email: TransactionalEmail): Promise<{ id: string; success: boolean }> {
+    const mailOptions: SendMailOptions = {
+      from: this.config.from,
+      to: email.to,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+    }
+
+    const info = await this.transporter.sendMail(mailOptions)
+    return { id: info.messageId || `msg_${Date.now()}`, success: true }
+  }
+
+  async verify(): Promise<boolean> {
+    try {
+      await this.transporter.verify()
+      return true
+    } catch {
+      return false
+    }
+  }
+}
+
+class EmailService {
+  private transport: EmailTransport
+  private devTransport: DevTransport
+
+  constructor(config?: {
+    host?: string
+    port?: number
+    secure?: boolean
+    authUser?: string
+    authPass?: string
+    from?: string
+    nodeEnv?: string
+  }) {
+    this.devTransport = new DevTransport()
+
+    const isProduction = config?.nodeEnv === 'production'
+    const hasSmtpConfig = config?.host && config?.authUser && config?.authPass
+
+    if (isProduction && hasSmtpConfig) {
+      this.transport = new SmtpTransport({
+        host: config.host!,
+        port: config.port ?? 587,
+        secure: config.secure ?? false,
+        auth: { user: config.authUser!, pass: config.authPass! },
+        from: config.from ?? `Nvara Operations <noreply@${config.host!}>`,
+      })
+    } else if (isProduction && !hasSmtpConfig) {
+      throw new Error('Production environment requires SMTP configuration (EMAIL_HOST, EMAIL_USER, EMAIL_PASS)')
+    } else {
+      this.transport = this.devTransport
+    }
+  }
+
+  async sendEmail(email: TransactionalEmail): Promise<{ id: string; success: boolean }> {
+    return this.transport.send(email)
+  }
+
+  getOutbox(): TransactionalEmail[] {
+    return this.devTransport.getOutbox()
+  }
+
+  clearOutbox(): void {
+    this.devTransport.clearOutbox()
+  }
+
   buildInvitationEmail(params: {
     to: string
     displayName: string
@@ -149,9 +227,6 @@ If you did not expect this invitation, please ignore this email.
     }
   }
 
-  /**
-   * Build Password Reset Email
-   */
   buildPasswordResetEmail(params: {
     to: string
     displayName: string
@@ -238,4 +313,16 @@ If you did not request a password reset, you can safely ignore this email. Your 
   }
 }
 
-export const emailService = new EmailService()
+function loadEmailConfig() {
+  return {
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : undefined,
+    secure: process.env.EMAIL_SECURE === 'true',
+    authUser: process.env.EMAIL_USER,
+    authPass: process.env.EMAIL_PASS,
+    from: process.env.EMAIL_FROM,
+    nodeEnv: process.env.NODE_ENV,
+  }
+}
+
+export const emailService = new EmailService(loadEmailConfig())

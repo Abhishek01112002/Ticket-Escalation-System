@@ -231,10 +231,10 @@ export function RequestDetail({
                   <button
                     type="button"
                     onClick={onOpenWhatsAppBriefing}
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#065f46] border border-[#a7f3d0] text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#334155] hover:text-[#0f172a] border border-[#cbd5e1] text-xs font-semibold transition-colors cursor-pointer"
                     title="Generate and dispatch pre-filled task briefing on WhatsApp"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#059669]">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                     <span>WhatsApp Task Briefing</span>

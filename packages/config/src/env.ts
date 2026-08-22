@@ -11,6 +11,12 @@ const schema = z.object({
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SLA_POLL_INTERVAL_SECONDS: z.coerce.number().int().positive().default(60),
+  EMAIL_HOST: z.string().optional(),
+  EMAIL_PORT: z.coerce.number().int().positive().max(65535).optional(),
+  EMAIL_SECURE: z.enum(['true', 'false']).optional().transform((v) => v === 'true'),
+  EMAIL_USER: z.string().optional(),
+  EMAIL_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
 });
 
 export type AppConfig = z.infer<typeof schema>;
@@ -20,5 +26,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (parsed.data.NODE_ENV === 'production' && parsed.data.DEV_AUTH_ENABLED) throw new Error('Invalid environment configuration: DEV_AUTH_ENABLED must be false in production.');
   if (parsed.data.NODE_ENV === 'production' && !env.DEFAULT_ORGANIZATION_NAME?.trim()) throw new Error('Invalid environment configuration: DEFAULT_ORGANIZATION_NAME is required in production.');
   if (parsed.data.NODE_ENV === 'production' && /^https?:\/\/localhost(?::\d+)?$/i.test(parsed.data.WEB_ORIGIN)) throw new Error('Invalid environment configuration: WEB_ORIGIN must not use localhost in production.');
+  if (parsed.data.NODE_ENV === 'production' && (!env.EMAIL_HOST || !env.EMAIL_USER || !env.EMAIL_PASS)) throw new Error('Invalid environment configuration: EMAIL_HOST, EMAIL_USER, and EMAIL_PASS are required in production.');
   return parsed.data;
 }

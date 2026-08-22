@@ -80,6 +80,7 @@ export function buildApp(pool: pg.Pool, config = loadConfig()): FastifyInstance 
     logger.logHttp(request.method, request.url, reply.statusCode, durationMs, request.id, routeError)
   })
 
+  app.get('/health', async () => ({ status: 'ok' }))
   app.get('/health/live', async () => ({ status: 'ok' }))
   app.get('/health/ready', async (_request, reply) => {
     try {

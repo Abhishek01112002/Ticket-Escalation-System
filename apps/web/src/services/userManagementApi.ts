@@ -162,8 +162,35 @@ export async function updateOrganizationUser(
   return data
 }
 
-export async function listAuditLogs(): Promise<AuditLogEntry[]> {
-  const res = await fetch('/v1/pm/audit-logs', {
+export interface AuditLogPagination {
+  page: number
+  limit: number
+  totalCount: number
+  totalPages: number
+  hasMore: boolean
+}
+
+export interface ListAuditLogsParams {
+  page?: number
+  limit?: number
+  search?: string
+  eventType?: string
+}
+
+export interface ListAuditLogsResponse {
+  logs: AuditLogEntry[]
+  pagination: AuditLogPagination
+}
+
+export async function listAuditLogs(params?: ListAuditLogsParams): Promise<ListAuditLogsResponse> {
+  const query = new URLSearchParams()
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.limit) query.set('limit', String(params.limit))
+  if (params?.search) query.set('search', params.search)
+  if (params?.eventType && params.eventType !== 'all') query.set('eventType', params.eventType)
+
+  const url = `/v1/pm/audit-logs${query.toString() ? `?${query.toString()}` : ''}`
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     credentials: 'include',
   })
@@ -174,5 +201,47 @@ export async function listAuditLogs(): Promise<AuditLogEntry[]> {
   }
 
   const data = await res.json()
-  return data.logs || []
+  return {
+    logs: data.logs || [],
+    pagination: data.pagination || {
+      page: 1,
+      limit: 10,
+      totalCount: (data.logs || []).length,
+      totalPages: 1,
+      hasMore: false,
+    },
+  }
+}
+
+export async function deleteAuditLog(id: string): Promise<void> {
+  const res = await fetch(`/v1/pm/audit-logs/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error?.message || 'Failed to delete audit log entry.')
+  }
+}
+
+export async function purgeAuditLogs(options: { olderThanDays?: number; all?: boolean }): Promise<{ purgedCount: number }> {
+  const query = new URLSearchParams()
+  if (options.olderThanDays) query.set('olderThanDays', String(options.olderThanDays))
+  if (options.all) query.set('all', 'true')
+
+  const res = await fetch(`/v1/pm/audit-logs?${query.toString()}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error?.message || 'Failed to purge audit log entries.')
+  }
+
+  const data = await res.json()
+  return { purgedCount: data.purgedCount || 0 }
 }

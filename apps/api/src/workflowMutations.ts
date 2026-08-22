@@ -141,6 +141,9 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       const current = assignment.rows[0]
       const isAssignee = current.assignee_user_id === auth.id
       const isPm = auth.role === 'project_manager'
+      // Auth guard fires first — before any state-specific checks so that a
+      // non-assigned specialist always receives 403 FORBIDDEN, not a 409 that
+      // leaks information about ticket state.
       if (!isAssignee && !isPm) {
         throw new ApiError(403, 'FORBIDDEN', 'Only the current assignee or a Project Manager can perform this action.')
       }

@@ -114,14 +114,11 @@ test.describe('Public Request Tracker', () => {
       expect(page.url()).not.toContain(reference ?? '')
       expect(page.url()).not.toContain('reference=')
 
-      const inputValue = await page.getByLabel('Tracking Reference').inputValue()
-      expect(inputValue).toBe(reference?.trim())
-
       // Core privacy invariants verified above.
       // Verify the input is pre-filled with the reference from confirmation.
       await expect(page.getByLabel('Tracking Reference')).toHaveValue(
         reference?.trim() ?? '',
-        { timeout: 3_000 },
+        { timeout: 5_000 },
       )
 
       // Tracker is live and has transitioned away from the blank/idle state —

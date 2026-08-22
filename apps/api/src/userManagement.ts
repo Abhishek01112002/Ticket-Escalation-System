@@ -282,7 +282,7 @@ export function registerUserManagementRoutes(
         [actor.organizationId, normalizedEmail, displayName, roleId, tokenHash, actor.id, expiresAt]
       )
 
-      const inviteUrl = `http://127.0.0.1:5173/?invite=${rawToken}`
+      const inviteUrl = `${config.WEB_ORIGIN.replace(/\/$/, '')}/?invite=${rawToken}`
 
       // Send transactional invitation email
       await emailService.sendEmail(
@@ -652,10 +652,53 @@ export function registerUserManagementRoutes(
     }
   })
 
-  // GET /v1/pm/audit-logs — Live organizational audit trail timeline
+  // GET /v1/pm/audit-logs — Live organizational audit trail timeline with pagination & search
   app.get('/v1/pm/audit-logs', async (request) => {
     const actor = await authenticatePm(request, pool, config)
+    if (actor.role !== 'project_manager') {
+      throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required to view compliance audit logs.')
+    }
+    const query = (request.query || {}) as Record<string, string | undefined>
+    const page = Math.max(1, parseInt(query.page || '1', 10) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit || '8', 10) || 8))
+    const offset = (page - 1) * limit
+    const search = query.search?.trim() || ''
+    const eventType = query.eventType?.trim() || ''
 
+    const conditions: string[] = ['a.organization_id = $1', 'a.deleted_at IS NULL']
+    const params: any[] = [actor.organizationId]
+
+    if (eventType && eventType !== 'all') {
+      params.push(eventType)
+      conditions.push(`a.event_type = $${params.length}`)
+    }
+
+    if (search) {
+      params.push(`%${search}%`)
+      const pIdx = params.length
+      conditions.push(`(
+        u.display_name ILIKE $${pIdx} OR
+        u.email ILIKE $${pIdx} OR
+        a.event_type ILIKE $${pIdx} OR
+        a.metadata::text ILIKE $${pIdx}
+      )`)
+    }
+
+    const whereClause = conditions.join(' AND ')
+
+    // Count total matching logs
+    const countResult = await pool.query<{ count: string }>(
+      `SELECT count(*)::text AS count
+       FROM audit_events a
+       LEFT JOIN users u ON u.id = a.actor_user_id
+       WHERE ${whereClause}`,
+      params
+    )
+    const totalCount = parseInt(countResult.rows[0]?.count || '0', 10)
+    const totalPages = Math.ceil(totalCount / limit) || 1
+
+    // Fetch paginated slice
+    params.push(limit, offset)
     const result = await pool.query<{
       id: string
       event_type: string
@@ -675,10 +718,10 @@ export function registerUserManagementRoutes(
         u.email AS actor_email
        FROM audit_events a
        LEFT JOIN users u ON u.id = a.actor_user_id
-       WHERE a.organization_id = $1
+       WHERE ${whereClause}
        ORDER BY a.occurred_at DESC
-       LIMIT 60`,
-      [actor.organizationId]
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
     )
 
     const logs = result.rows.map((row) => ({
@@ -691,6 +734,70 @@ export function registerUserManagementRoutes(
       metadata: row.metadata || {},
     }))
 
-    return { logs }
+    return {
+      logs,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasMore: page < totalPages,
+      },
+    }
+  })
+
+  // DELETE /v1/pm/audit-logs/:id — Soft-delete a single audit log record
+  app.delete('/v1/pm/audit-logs/:id', async (request, reply) => {
+    const actor = await authenticatePm(request, pool, config)
+    if (actor.role !== 'project_manager') {
+      throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required to manage audit records.')
+    }
+    const { id } = request.params as { id: string }
+
+    const result = await pool.query<{ id: string }>(
+      `UPDATE audit_events
+       SET deleted_at = now()
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+       RETURNING id`,
+      [id, actor.organizationId]
+    )
+
+    if (!result.rowCount) {
+      throw new ApiError(404, 'AUDIT_LOG_NOT_FOUND', 'Audit log record not found or already deleted.')
+    }
+
+    return reply.code(200).send({ success: true, deletedId: id })
+  })
+
+  // DELETE /v1/pm/audit-logs — Bulk purge / prune audit log records (e.g. olderThanDays or all)
+  app.delete('/v1/pm/audit-logs', async (request, reply) => {
+    const actor = await authenticatePm(request, pool, config)
+    if (actor.role !== 'project_manager') {
+      throw new ApiError(403, 'FORBIDDEN', 'Project manager access is required to purge audit records.')
+    }
+    const query = (request.query || {}) as Record<string, string | undefined>
+    const olderThanDays = query.olderThanDays ? parseInt(query.olderThanDays, 10) : undefined
+    const purgeAll = query.all === 'true'
+
+    let result
+    if (olderThanDays && !isNaN(olderThanDays) && olderThanDays > 0) {
+      result = await pool.query(
+        `UPDATE audit_events
+         SET deleted_at = now()
+         WHERE organization_id = $1 AND deleted_at IS NULL AND occurred_at < (now() - ($2 || ' days')::interval)`,
+        [actor.organizationId, String(olderThanDays)]
+      )
+    } else if (purgeAll) {
+      result = await pool.query(
+        `UPDATE audit_events
+         SET deleted_at = now()
+         WHERE organization_id = $1 AND deleted_at IS NULL`,
+        [actor.organizationId]
+      )
+    } else {
+      throw new ApiError(400, 'INVALID_PURGE_PARAM', 'Specify olderThanDays or all=true to purge audit records.')
+    }
+
+    return reply.code(200).send({ success: true, purgedCount: result.rowCount || 0 })
   })
 }

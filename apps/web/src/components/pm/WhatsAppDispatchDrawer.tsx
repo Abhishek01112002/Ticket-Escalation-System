@@ -57,7 +57,7 @@ export function WhatsAppDispatchDrawer({
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch {
-      // Fallback
+      // Clipboard fallback
     }
   }
 
@@ -75,16 +75,17 @@ export function WhatsAppDispatchDrawer({
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-5 right-5 z-50">
+      <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold shadow-xl border border-[#34d399] transition-transform hover:scale-105 cursor-pointer"
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-semibold shadow-xl border border-[#334155] transition-all cursor-pointer"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#34d399]">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          <span>WhatsApp Briefing Ready ({request.id})</span>
+          <span>Task Briefing ({request.id})</span>
+          <span className="w-2 h-2 rounded-full bg-[#10b981]" />
         </button>
       </div>
     )
@@ -94,36 +95,44 @@ export function WhatsAppDispatchDrawer({
     <div
       role="dialog"
       aria-labelledby="whatsapp-dispatch-title"
-      className="fixed bottom-5 right-5 z-50 w-full max-w-[420px] bg-white rounded-2xl shadow-2xl border border-[#cbd5e1] p-4 text-left animate-slide-up font-sans"
+      className="fixed bottom-6 right-6 z-50 w-[calc(100vw-2rem)] sm:w-[460px] bg-white rounded-xl shadow-2xl border border-[#cbd5e1] text-left animate-slide-up font-sans overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] animate-pulse" />
-          <h3 id="whatsapp-dispatch-title" className="text-xs font-bold text-[#0f172a] uppercase tracking-wider">
-            WhatsApp Task Dispatcher
-          </h3>
+      <div className="flex items-center justify-between px-4 py-3 bg-[#f8fafc] border-b border-[#e2e8f0]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-[#059669] flex items-center justify-center text-white shrink-0 shadow-2xs">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="whatsapp-dispatch-title" className="text-xs font-bold text-[#0f172a] tracking-tight">
+              Task Dispatch Briefing
+            </h3>
+            <p className="text-[10.5px] text-[#64748b]">WhatsApp Notification Channel</p>
+          </div>
         </div>
+
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setIsMinimized(true)}
-            className="p-1 rounded text-[#94a3b8] hover:text-[#0f172a] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+            className="p-1.5 rounded-md text-[#64748b] hover:text-[#0f172a] hover:bg-[#e2e8f0] transition-colors cursor-pointer"
             title="Minimize"
             aria-label="Minimize drawer"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded text-[#94a3b8] hover:text-[#0f172a] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
-            title="Dismiss"
+            className="p-1.5 rounded-md text-[#64748b] hover:text-[#0f172a] hover:bg-[#e2e8f0] transition-colors cursor-pointer"
+            title="Close"
             aria-label="Close drawer"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -131,94 +140,112 @@ export function WhatsAppDispatchDrawer({
         </div>
       </div>
 
-      {/* Specialist & Ticket Info Card */}
-      <div className="mt-3 p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <Avatar user={{ name: specialist.name }} size="sm" />
-            <div className="min-w-0 flex-1">
-              <span className="text-xs font-bold text-[#0f172a] block truncate">
-                {specialist.name}
-              </span>
-              <span className="text-[11px] text-[#64748b] font-mono block truncate">
-                {formatPhoneDisplay(phone)}
-              </span>
+      <div className="p-4 space-y-3">
+        {/* Recipient & Reference Meta Card */}
+        <div className="p-3 rounded-lg bg-[#f8fafc] border border-[#e2e8f0]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Avatar user={{ name: specialist.name }} size="sm" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#0f172a] truncate">
+                    {specialist.name}
+                  </span>
+                  <span className="text-[9.5px] font-semibold text-[#475569] bg-[#e2e8f0] px-1.5 py-0.2 rounded">
+                    Specialist
+                  </span>
+                </div>
+                <span className="text-[11px] text-[#64748b] font-mono block">
+                  {formatPhoneDisplay(phone)}
+                </span>
+              </div>
             </div>
+
+            <span className="font-mono text-[10.5px] font-bold text-[#0f172a] bg-white px-2 py-0.5 rounded border border-[#cbd5e1] shrink-0" title={request.id}>
+              {request.id}
+            </span>
           </div>
 
-          <span className="font-mono text-[11px] font-bold text-[#065f46] bg-[#ecfdf5] px-2 py-0.5 rounded border border-[#d1fae5] shrink-0 truncate max-w-[140px]" title={request.id}>
-            {request.id}
-          </span>
-        </div>
-
-        {!hasPhone && (
-          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-[#b45309] bg-[#fef3c7] px-2 py-0.5 rounded border border-[#fde68a]">
-            <span>Notice:</span>
-            <span>No WhatsApp number registered for this member</span>
-          </div>
-        )}
-      </div>
-
-      {/* Custom Note input */}
-      <div className="mt-2.5 space-y-1">
-        <label htmlFor="pm-custom-note" className="block text-[11px] font-bold text-[#475569]">
-          Custom PM Instruction (Optional):
-        </label>
-        <input
-          id="pm-custom-note"
-          type="text"
-          value={customNote}
-          onChange={(e) => setCustomNote(e.target.value)}
-          placeholder="e.g. Focus on video assets first, client needs this tomorrow."
-          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-[#cbd5e1] focus:border-[#059669] focus:ring-1 focus:ring-[#059669] outline-none text-[#0f172a] placeholder-[#94a3b8] bg-[#ffffff]"
-        />
-      </div>
-
-      {/* Live WhatsApp Markdown Message Preview Box */}
-      <div className="mt-2.5">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10.5px] font-bold text-[#64748b] uppercase tracking-wider">
-            Message Preview (WhatsApp Formatted):
-          </span>
-          <span className="text-[10px] text-[#94a3b8] font-medium">Universal Web Dispatch</span>
-        </div>
-        <div className="p-3 rounded-xl bg-[#0b131b] text-[#86efac] font-mono text-[11px] leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap border border-[#1e293b] shadow-inner custom-scrollbar">
-          {formattedMessage}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-3.5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleLaunch}
-          className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold shadow-sm transition-all cursor-pointer hover:shadow"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-          <span>Open WhatsApp Chat</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-[#cbd5e1] hover:bg-[#f8fafc] text-[#334155] text-xs font-semibold transition-colors cursor-pointer"
-          title="Copy message to clipboard"
-        >
-          {copied ? (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
+          {!hasPhone && (
+            <div className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#b45309] bg-[#fef3c7] px-2.5 py-1 rounded border border-[#fde68a]">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>No direct phone on profile. Link will open WhatsApp without pre-selected contact.</span>
+            </div>
           )}
-          <span>{copied ? 'Copied' : 'Copy'}</span>
-        </button>
+        </div>
+
+        {/* Custom Instruction Input */}
+        <div>
+          <label htmlFor="pm-custom-note" className="block text-[11px] font-semibold text-[#334155] mb-1">
+            Custom PM Instructions (Optional)
+          </label>
+          <input
+            id="pm-custom-note"
+            type="text"
+            value={customNote}
+            onChange={(e) => setCustomNote(e.target.value)}
+            placeholder="e.g. Prioritize high-resolution asset export; client review scheduled for 4 PM."
+            className="w-full text-xs px-3 py-2 rounded-lg border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb] outline-none text-[#0f172a] placeholder-[#94a3b8] bg-white transition-colors"
+          />
+        </div>
+
+        {/* Formatted Message Preview */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10.5px] font-bold text-[#64748b] uppercase tracking-wider">
+              Message Payload Preview
+            </span>
+            <span className="text-[10px] text-[#64748b] font-medium bg-[#f1f5f9] px-1.5 py-0.5 rounded">
+              WhatsApp Markdown
+            </span>
+          </div>
+          <div className="p-3 rounded-lg bg-[#0f172a] text-[#f1f5f9] font-mono text-[11px] leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap border border-[#1e293b] shadow-inner custom-scrollbar select-text">
+            {formattedMessage}
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="pt-1 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleLaunch}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer hover:shadow"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+            <span>Open in WhatsApp</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg border border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#334155] text-xs font-semibold transition-colors cursor-pointer shrink-0"
+            title="Copy message to clipboard"
+          >
+            {copied ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span className="text-[#059669]">Copied</span>
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

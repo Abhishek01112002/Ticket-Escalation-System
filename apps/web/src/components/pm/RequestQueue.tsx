@@ -90,7 +90,7 @@ export function RequestQueue({
   const [search, setSearch]       = useState('')
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [selectedDateRange, setSelectedDateRange] = useState<number | null>(null)
-  const [pageSize, setPageSize]   = useState<number>(7)
+  const [pageSize, setPageSize]   = useState<number>(6)
   const [page, setPage]           = useState<number>(1)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -293,9 +293,9 @@ export function RequestQueue({
             onChange={e => setPageSize(Number(e.target.value))}
             className="h-8 px-2.5 rounded-lg border border-[#cbd5d0] bg-white text-[12.5px] font-medium text-[#0b131b] focus:border-[#059669] outline-none cursor-pointer shadow-2xs"
           >
-            <option value={7}>7</option>
-            <option value={14}>14</option>
-            <option value={21}>21</option>
+            <option value={6}>6</option>
+            <option value={12}>12</option>
+            <option value={18}>18</option>
           </select>
         </div>
       </div>

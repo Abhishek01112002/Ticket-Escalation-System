@@ -30,7 +30,7 @@ export function TeamManagement({
 
   // Pagination state
   const [page, setPage]         = useState(1)
-  const [pageSize, setPageSize] = useState(8)
+  const [pageSize, setPageSize] = useState(6)
 
   // Selected Member for Detail Drawer
   const [selectedMember, setSelectedMember] = useState<OrganizationUser | null>(null)
@@ -180,7 +180,7 @@ export function TeamManagement({
         isActive: false,
         reassignToUserId: reassignId,
       })
-      showToast(res.message || 'Member deactivated and workload rebalanced.', 'success')
+      showToast(res.message || 'Member deactivated and workload updated.', 'success')
       setDeactivateTarget(null)
       setSelectedMember(null)
       await loadUsers()
@@ -257,31 +257,33 @@ export function TeamManagement({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* View Toggle */}
-          <div className="flex bg-[#f1f5f9] p-1 rounded-xl border border-[#cbd5e1] text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setActiveView('members')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                activeView === 'members'
-                  ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
-                  : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
-              }`}
-            >
-              Directory
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('audit')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                activeView === 'audit'
-                  ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
-                  : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
-              }`}
-            >
-              Audit Trail
-            </button>
-          </div>
+          {/* View Toggle - Only visible to Project Managers */}
+          {isPm && (
+            <div className="flex bg-[#f1f5f9] p-1 rounded-xl border border-[#cbd5e1] text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setActiveView('members')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  activeView === 'members'
+                    ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
+                    : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
+                }`}
+              >
+                Directory
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('audit')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  activeView === 'audit'
+                    ? 'bg-white text-[#0f172a] font-bold shadow-xs border border-[#cbd5e1]'
+                    : 'text-[#64748b] hover:text-[#0f172a] font-semibold'
+                }`}
+              >
+                Audit Trail
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -537,7 +539,7 @@ export function TeamManagement({
               </div>
 
               {/* ── Pagination Footer ─────────────────────────────────── */}
-              {totalPages > 1 || totalItems > 8 ? (
+              {totalPages > 1 || totalItems > 6 ? (
                 <div className="px-5 py-3.5 border-t border-[#e2e8f0] bg-[#f8fafc] flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="flex items-center gap-3 text-[12px] text-[#64748b]">
                     <span>
@@ -552,9 +554,9 @@ export function TeamManagement({
                         onChange={e => setPageSize(Number(e.target.value))}
                         className="h-7 px-2 rounded-lg border border-[#cbd5e1] bg-white text-[11.5px] font-bold text-[#0f172a] focus:border-[#0f172a] outline-none cursor-pointer"
                       >
-                        <option value={8}>8</option>
-                        <option value={16}>16</option>
-                        <option value={32}>32</option>
+                        <option value={6}>6</option>
+                        <option value={12}>12</option>
+                        <option value={24}>24</option>
                       </select>
                     </div>
                   </div>
@@ -619,6 +621,7 @@ export function TeamManagement({
       {/* Slide-over Detail Drawer */}
       <MemberDetailDrawer
         member={selectedMember}
+        isPm={isPm}
         isOpen={Boolean(selectedMember)}
         onClose={() => setSelectedMember(null)}
         onRoleChange={handleRoleChange}
@@ -871,7 +874,7 @@ export function TeamManagement({
                 <h2 className="text-base font-bold text-[#0f172a]">
                   Deactivate {deactivateTarget.displayName}
                 </h2>
-                <p className="text-xs text-[#64748b]">Revoke access &amp; rebalance active tickets.</p>
+                <p className="text-xs text-[#64748b]">Revoke access &amp; manage active ticket assignments.</p>
               </div>
             </div>
 

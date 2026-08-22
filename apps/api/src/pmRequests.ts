@@ -485,6 +485,23 @@ export function registerPmRequestRoutes(app: FastifyInstance, pool: pg.Pool, con
 
       // Soft delete: stamp deleted_at, bump version, and insert permanent audit record
       await client.query('UPDATE requests SET deleted_at = now(), version = version + 1, updated_at = now() WHERE id = $1', [reqRow.id])
+
+      // End any active assignment for this request and supersede its SLA
+      const assignmentResult = await client.query<{ id: string }>(
+        'SELECT id FROM assignments WHERE request_id = $1 AND ended_at IS NULL FOR UPDATE',
+        [reqRow.id]
+      )
+      if (assignmentResult.rows.length > 0) {
+        const assignmentIds = assignmentResult.rows.map((r) => r.id)
+        const assignmentIdList = assignmentIds.join(',')
+        await client.query(
+          `UPDATE assignments SET ended_at = now(), end_reason = 'request_deleted' WHERE id IN (${assignmentIdList})`
+        )
+        await client.query(
+          `UPDATE sla_records SET status = 'superseded', updated_at = now() WHERE assignment_id IN (${assignmentIdList}) AND status IN ('active', 'breached')`
+        )
+      }
+
       await client.query(
         `INSERT INTO audit_events(organization_id, request_id, actor_user_id, actor_type, event_type, previous_state, new_state, metadata, correlation_id)
          VALUES ($1, $2, $3, 'user', 'request_deleted', 'resolved', 'deleted', $4, $5)`,
