@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 const api = process.env.API_BASE_URL ?? 'http://127.0.0.1:4000'
 const pm = { 'X-Dev-Auth-Subject': 'dev-pm-subject-001' }
 const internal = { 'X-Dev-Auth-Subject': 'dev-internal-subject-001' }
+const otherSpecialist = { 'X-Dev-Auth-Subject': 'dev-priya-subject-001' }
 async function read(request: any, ref: string, headers: Record<string,string>) { const response = await request.get(`${api}/v1/pm/requests/${ref}`, { headers }); expect(response.ok()).toBeTruthy(); return (await response.json()).request }
 async function mutate(request: any, path: string, headers: Record<string,string>, body: unknown, key: string) { return request.post(`${api}${path}`, { headers: { ...headers, 'content-type':'application/json', 'Idempotency-Key':key }, data: body }) }
 
@@ -19,7 +20,7 @@ test('PM/internal workflow authorization and refresh persistence', async ({ page
   const assigned = await mutate(request, `/v1/pm/requests/${ref}/assignments`, pm, { assigneeUserId:r.id, expectedVersion:state.version }, `assign-${randomUUID()}`)
   expect(assigned.status()).toBe(200); state = (await assigned.json()).request; expect(state.version).toBe(2)
   await page.goto(`/`); await page.reload(); state = await read(request, ref, pm); expect(state.version).toBe(2); expect(state.currentResponsibility.name).toBe(r.name)
-  const denied = await mutate(request, `/v1/requests/${ref}/acknowledge`, pm, { expectedVersion:state.version }, `deny-${randomUUID()}`)
+  const denied = await mutate(request, `/v1/requests/${ref}/acknowledge`, otherSpecialist, { expectedVersion:state.version }, `deny-${randomUUID()}`)
   expect(denied.status()).toBe(403); expect((await read(request, ref, pm)).version).toBe(2)
   await page.reload(); state = await read(request, ref, internal)
   const acknowledged = await mutate(request, `/v1/requests/${ref}/acknowledge`, internal, { expectedVersion:state.version }, `ack-${randomUUID()}`); expect(acknowledged.status()).toBe(200); state=(await acknowledged.json()).request; expect(state.version).toBe(3); expect(state.sla.acknowledgedAt).toBeTruthy()

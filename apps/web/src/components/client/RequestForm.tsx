@@ -36,9 +36,10 @@ export function RequestForm({
   onSubmit,
   onBack,
 }: {
-  onSubmit(input: CreateRequestInput): Promise<SubmissionConfirmation>
+  onSubmit(input: CreateRequestInput, idempotencyKey?: string): Promise<SubmissionConfirmation>
   onBack(): void
 }) {
+  const [idempotencyKey] = useState<string>(() => crypto.randomUUID())
   const [form, setForm] = useState<CreateRequestInput>({
     clientName: '',
     company: '',
@@ -89,10 +90,10 @@ export function RequestForm({
     e.preventDefault()
     setSubmitAttempted(true)
     setSubmitError(undefined)
-    if (!allValid) return
+    if (!allValid || submitting) return
     setSubmitting(true)
     try {
-      await onSubmit(form)
+      await onSubmit(form, idempotencyKey)
     } catch (err) {
       setSubmitError(
         err instanceof ClientRequestApiError

@@ -139,7 +139,13 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
       )
       if (!assignment.rowCount) throw new ApiError(409, 'INVALID_STATE_TRANSITION', 'No current assignee.')
       const current = assignment.rows[0]
-      if (current.assignee_user_id !== auth.id) throw new ApiError(403, 'FORBIDDEN', 'Only the current assignee can perform this action.')
+      const isAssignee = current.assignee_user_id === auth.id
+      const isPm = auth.role === 'project_manager'
+      if (!isAssignee && !isPm) {
+        throw new ApiError(403, 'FORBIDDEN', 'Only the current assignee or a Project Manager can perform this action.')
+      }
+      const isOverride = !isAssignee && isPm
+
       let next = row.status
       if (action === 'acknowledge') {
         if (row.status !== 'awaiting_acknowledgement' || current.acknowledged_at) throw new ApiError(409, 'INVALID_STATE_TRANSITION', 'Request is not awaiting acknowledgement.')
@@ -156,7 +162,24 @@ export function registerWorkflowMutationRoutes(app: FastifyInstance, pool: pg.Po
         await client.query("UPDATE sla_records SET status='closed',updated_at=now() WHERE id=$1", [current.sla_id])
       }
       await client.query('UPDATE requests SET status=$1,version=version+1,updated_at=now() WHERE id=$2', [next, row.id])
-      await client.query('INSERT INTO audit_events(organization_id,request_id,assignment_id,actor_user_id,actor_type,event_type,previous_state,new_state,metadata,correlation_id) VALUES($1,$2,$3,$4,\'user\',$5,$6,$7,$8,$9)', [auth.organizationId, row.id, current.id, auth.id, action === 'start-work' ? 'work_started' : action === 'acknowledge' ? 'acknowledged' : 'resolved', row.status, next, JSON.stringify({ late: action === 'acknowledge' && new Date() > new Date(current.deadline_at) }), request.id])
+      await client.query(
+        'INSERT INTO audit_events(organization_id,request_id,assignment_id,actor_user_id,actor_type,event_type,previous_state,new_state,metadata,correlation_id) VALUES($1,$2,$3,$4,\'user\',$5,$6,$7,$8,$9)',
+        [
+          auth.organizationId,
+          row.id,
+          current.id,
+          auth.id,
+          action === 'start-work' ? 'work_started' : action === 'acknowledge' ? 'acknowledged' : 'resolved',
+          row.status,
+          next,
+          JSON.stringify({
+            late: action === 'acknowledge' && new Date() > new Date(current.deadline_at),
+            override: isOverride,
+            originalAssigneeUserId: isOverride ? current.assignee_user_id : undefined,
+          }),
+          request.id,
+        ],
+      )
       const response = await detail(client, auth.organizationId, String((request.params as any).id))
       await saveIdem(client, auth, 'POST', route, key, 200, response)
       await client.query('COMMIT')

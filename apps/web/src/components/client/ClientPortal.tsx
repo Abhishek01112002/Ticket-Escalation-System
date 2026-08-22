@@ -5,7 +5,7 @@ import { RequestForm } from './RequestForm'
 import { ConfirmationScreen } from './ConfirmationScreen'
 
 interface ClientPortalProps {
-  onSubmit(input: CreateRequestInput): Promise<SubmissionConfirmation>
+  onSubmit(input: CreateRequestInput, idempotencyKey?: string): Promise<SubmissionConfirmation>
   onBack(): void
   /** Navigate to the public tracker with this reference pre-filled.
    *  Reference is passed via prop — never placed in the URL. */
@@ -18,8 +18,8 @@ export function ClientPortal({ onSubmit, onBack, onTrackRequest }: ClientPortalP
   const [view, setView] = useState<ClientView>('form')
   const [confirmedRequest, setConfirmedRequest] = useState<SubmissionConfirmation | null>(null)
 
-  const handleSubmit = async (input: CreateRequestInput) => {
-    const result = await onSubmit(input)
+  const handleSubmit = async (input: CreateRequestInput, idempotencyKey?: string) => {
+    const result = await onSubmit(input, idempotencyKey)
     setConfirmedRequest(result)
     setView('confirmation')
     return result

@@ -83,8 +83,8 @@ function renderEventIcon(eventType: string) {
 }
 
 function formatEventSummary(log: AuditLogEntry): { headline: React.ReactNode; icon: React.ReactNode } {
-  const m = log.metadata || {}
-  const target = m.displayName || m.email || m.targetEmail || 'Team Member'
+  const m = (log.metadata || {}) as Record<string, any>
+  const target = String(m.displayName || m.email || m.targetEmail || 'Team Member')
   const icon = renderEventIcon(log.eventType)
 
   switch (log.eventType) {

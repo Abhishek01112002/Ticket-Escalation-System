@@ -118,7 +118,8 @@ function AppContent() {
     setPortal('landing')
   }
 
-  const handleClientSubmit = (input: CreateRequestInput) => submitClientRequest(input)
+  const handleClientSubmit = (input: CreateRequestInput, idempotencyKey?: string) =>
+    submitClientRequest(input, idempotencyKey)
 
   /** Called from ConfirmationScreen CTA — navigate to tracker with reference
    *  pre-filled via prop. The reference is NOT appended to the URL. */

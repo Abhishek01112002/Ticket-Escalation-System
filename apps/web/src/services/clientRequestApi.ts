@@ -20,11 +20,16 @@ function idempotencyKey() {
   return crypto.randomUUID()
 }
 
-export async function submitClientRequest(input: CreateRequestInput): Promise<SubmissionConfirmation> {
+export async function submitClientRequest(
+  input: CreateRequestInput,
+  idempotencyKey?: string,
+): Promise<SubmissionConfirmation> {
+  const key = idempotencyKey || crypto.randomUUID()
+
   try {
     const response = await fetch('/v1/client/requests', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey() },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
       body: JSON.stringify({
         name: input.clientName,
         company: input.company,
@@ -64,20 +69,6 @@ export async function submitClientRequest(input: CreateRequestInput): Promise<Su
   } catch (err) {
     if (err instanceof ClientRequestApiError) throw err
 
-    // In local development preview mode, if backend server is completely offline (network error), provide preview
-    if (import.meta.env.DEV && err instanceof TypeError) {
-      const randomHex = Math.random().toString(16).substring(2, 10).toUpperCase()
-      const demoRef = `NVARA-${new Date().getFullYear()}-${randomHex}`
-      return {
-        reference: demoRef,
-        createdAt: new Date().toISOString(),
-        status: 'received',
-        clientName: input.clientName,
-        email: input.email,
-        phone: input.phone,
-      }
-    }
-
-    throw new ClientRequestApiError('We could not submit your request. Please try again.')
+    throw new ClientRequestApiError('Unable to reach the operations server. Please try again.')
   }
 }

@@ -83,14 +83,14 @@ export function ActionPanel({
               : `Awaiting receipt confirmation from ${cleanName(request.assignment?.assignee?.name || 'assigned specialist')}.`}
           </p>
 
-          {isAssignee && (
+          {(isAssignee || isPM) && (
             <PrimaryBtn
               onClick={onAcknowledge}
               disabled={busy}
               busy={busy}
               className="w-full h-10 rounded-lg bg-[#059669] hover:bg-[#047857] active:bg-[#064e3b] text-white font-bold shadow-xs"
             >
-              Acknowledge Request
+              {isAssignee ? 'Acknowledge Request' : 'Acknowledge on Behalf of Specialist'}
             </PrimaryBtn>
           )}
         </div>

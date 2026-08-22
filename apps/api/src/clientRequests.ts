@@ -78,8 +78,22 @@ export function registerClientRequestRoutes(app: FastifyInstance, pool: pg.Pool,
         return reply.code(row.response_status).send(row.response_body);
       }
 
-      const routing = await client.query<{ organization_id: string; pm_id: string }>("SELECT o.id AS organization_id, u.id AS pm_id FROM organizations o JOIN users u ON u.organization_id = o.id JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id WHERE o.name = $1 AND u.is_active = true AND r.code = 'project_manager'", [config.DEFAULT_ORGANIZATION_NAME]);
-      if (routing.rowCount !== 1) throw new Error('Exactly one active initial project manager is required.');
+      const routing = await client.query<{ organization_id: string; pm_id: string }>(
+        `SELECT o.id AS organization_id, u.id AS pm_id
+         FROM organizations o
+         JOIN users u ON u.organization_id = o.id
+         JOIN user_roles ur ON ur.user_id = u.id
+         JOIN roles r ON r.id = ur.role_id
+         WHERE o.name = $1
+           AND u.is_active = true
+           AND r.code = 'project_manager'
+         ORDER BY u.created_at ASC
+         LIMIT 1`,
+        [config.DEFAULT_ORGANIZATION_NAME]
+      );
+      if (routing.rowCount === 0) {
+        throw new ApiError(503, 'SERVICE_UNAVAILABLE', 'Request intake is temporarily unavailable because no active Project Manager is assigned to the organization.');
+      }
       const { organization_id: organizationId, pm_id: pmId } = routing.rows[0];
       const domain = await client.query<{ id: string }>('SELECT id FROM service_domains WHERE organization_id = $1 AND slug = $2 AND is_active = true', [organizationId, body.serviceDomain]);
       if (domain.rowCount !== 1) throw new ApiError(422, 'VALIDATION_ERROR', 'The selected service domain is not available.', { serviceDomain: 'Unknown or inactive service domain.' });
